@@ -1,0 +1,620 @@
+%================================================================
+\chapter{Introducción a \LaTeX{}}
+\label{ch:latex}
+%================================================================
+
+\LaTeX{} es un sistema de preparación de documentos en el que el autor
+escribe texto plano intercalado con comandos de marcado, y un
+compilador transforma ese código fuente en un PDF compuesto
+tipográficamente. Esto contrasta con procesadores de texto como
+Microsoft Word o Google Docs, donde el formato se aplica de manera
+interactiva en un editor de tipo «lo que ve es lo que obtiene»
+(WYSIWYG). La propiedad clave que convierte a \LaTeX{} en el estándar
+en ciencia y matemáticas es su capacidad de representar notación
+matemática arbitrariamente compleja con precisión y consistencia. Cada
+documento producido en este programa es un documento \LaTeX{}.
+
+%================================================================
+\section{Su primer documento \LaTeX{}}
+\label{sec:first-latex-doc}
+%================================================================
+
+Un archivo fuente de \LaTeX{} es un archivo de texto plano con la
+extensión \texttt{.tex}. Así como \texttt{hello.py} era un archivo de
+texto plano que Python interpretaba, \texttt{hello.tex} es un archivo
+de texto plano que el compilador de \LaTeX{} procesa para producir un
+PDF. Se aplican las mismas reglas sobre editores de texto (véase la
+Sección~\ref{sec:plaintext-first}): utilice Notepad, TextEdit en modo
+de texto plano o \texttt{gedit}; nunca un procesador de texto.
+
+\begin{infobox}{Ejercicio L-1: Su primer documento \LaTeX{}}
+Abra un editor de texto plano (véase la
+Tabla~\ref{tab:text-editors}), escriba exactamente lo siguiente y
+guarde el archivo como \texttt{hello.tex}:
+
+\begin{lstlisting}[style=inlineStyle]
+\documentclass{article}
+\begin{document}
+
+Hello, world. This is my first \LaTeX{} document.
+
+Here is some mathematics: $e^{i\pi} + 1 = 0$.
+
+\end{document}
+\end{lstlisting}
+\end{infobox}
+
+Cada línea del listado cumple un propósito específico:
+
+\begin{itemize}
+    \item \verb|\documentclass{article}| declara la clase de
+          documento. Para la mayoría de los informes y artículos,
+          \texttt{article} es la elección correcta.
+    \item \verb|\begin{document}| y \verb|\end{document}| delimitan el
+          cuerpo. Todo lo que esté fuera de este par constituye el
+          \emph{preámbulo} (se aborda en la
+          Sección~\ref{sec:latex-structure}).
+    \item El texto entre los delimitadores es el contenido visible.
+    \item \verb|$e^{i\pi} + 1 = 0$| es el modo matemático en línea: el
+          texto entre signos de dólar se compone como matemáticas.
+\end{itemize}
+
+\begin{table}[htbp]
+\centering
+\caption{Compilación de un documento \LaTeX{} en cada plataforma}
+\label{tab:latex-compile}
+\footnotesize
+\begin{tabular}{ll}
+\toprule
+\textbf{Plataforma} & \textbf{Comando} \\
+\midrule
+Windows (Símbolo del sistema o Git Bash) & \texttt{pdflatex hello.tex} \\
+macOS (Terminal) & \texttt{pdflatex hello.tex} \\
+Linux & \texttt{pdflatex hello.tex} o \texttt{latexmk -pdf hello.tex} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Tenga en cuenta que, con frecuencia, se requieren dos pasadas de
+compilación para documentos con referencias cruzadas o un índice
+general; \texttt{latexmk} se encarga de esto automáticamente.
+
+\vs
+\noindent
+La ejecución de \texttt{pdflatex hello.tex} produce varios archivos.
+El importante es \texttt{hello.pdf}, que puede abrirse en cualquier
+visor de PDF. Los archivos \texttt{.aux}, \texttt{.log} y
+\texttt{.out} son auxiliares; pueden eliminarse sin problema.
+
+%================================================================
+\section{Un ejemplo más completo}
+\label{sec:latex-example2}
+%================================================================
+
+El Ejercicio L-1 produjo el documento mínimo viable. Esta sección
+presenta un documento más realista que demuestra las características
+más necesarias en la escritura académica: una jerarquía estructurada
+de secciones, un índice general generado automáticamente, citas en el
+texto enlazadas a una bibliografía y la gama completa de modos de
+presentación matemática. Cada característica mostrada aquí se utiliza
+en los documentos producidos en este programa.
+
+\begin{infobox}{Ejercicio L-2: Un documento estructurado con matemáticas y bibliografía}
+Cree dos archivos en la misma carpeta. El primero es el documento
+principal, \texttt{report.tex}. El segundo es la base de datos
+bibliográfica, \texttt{sample.bib}. Ambos archivos deben estar en el
+mismo directorio para que la bibliografía se resuelva.
+
+\vs
+\noindent
+\textbf{Archivo 1: \texttt{report.tex}}
+
+\begin{lstlisting}[style=inlineStyle]
+\documentclass{article}
+
+\usepackage{amsmath}   % entornos matematicos extendidos
+\usepackage{booktabs}  % tablas profesionales
+\usepackage{hyperref}  % enlaces y referencias cruzadas navegables
+
+\title{A Short Report on Mathematical Notation}
+\author{Your Name}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+\newpage
+
+\section{Introduction}
+
+This report demonstrates document structure and mathematical
+notation in \LaTeX{}. For background on literate programming,
+see Knuth~\cite{knuth1984literate}. The \LaTeX{} system itself
+is described in~\cite{lamport1994latex}.
+
+\subsection{Motivation}
+
+Scientific writing requires precise notation. \LaTeX{} provides
+that precision through its mathematical typesetting engine.
+
+\subsubsection{A Note on Style}
+
+Use display equations for any expression that warrants visual
+emphasis, and inline math for symbols embedded in prose.
+
+\section{Mathematical Display Modes}
+
+\subsection{Inline Math}
+
+Inline math is enclosed in single dollar signs: $f(x) = x^2 + 1$.
+It flows within the surrounding text without a line break.
+
+\subsection{Display Math (unnumbered)}
+
+The preferred form for unnumbered display equations is the
+\texttt{\textbackslash[...\textbackslash]} environment:
+
+\[
+    \int_{-\infty}^{\infty} e^{-x^2}\,dx = \sqrt{\pi}
+\]
+
+The legacy \texttt{\$\$...\$\$} form produces the same visual
+result but is deprecated in \LaTeX{} and should be avoided in
+new documents.
+
+\subsection{Numbered Equations}
+
+The \texttt{equation} environment produces a numbered equation
+that can be cross-referenced:
+
+\begin{equation}
+    \bar{x} = \frac{1}{n} \sum_{i=1}^{n} x_i
+    \label{eq:mean}
+\end{equation}
+
+Equation~\ref{eq:mean} defines the sample mean. An approximation
+for the standard deviation is given in~\cite{gurland1971simple}.
+
+\subsection{Multi-line Aligned Equations}
+
+The \texttt{align} environment aligns multiple equations at a
+designated column, marked with \texttt{\&}:
+
+\begin{align}
+    \mu    &= \mathbb{E}[X]            \label{eq:mu}   \\
+    \sigma^2 &= \mathbb{E}[(X-\mu)^2] \label{eq:var}
+\end{align}
+
+Equations~\ref{eq:mu} and~\ref{eq:var} define the mean and
+variance of a random variable $X$.
+
+\section{A Simple Table}
+
+\begin{table}[htbp]
+\centering
+\caption{Comparison of equation display modes}
+\label{tab:modes}
+\begin{tabular}{lll}
+\toprule
+Mode & Syntax & Use case \\
+\midrule
+Inline     & \texttt{\$...\$}                    & Symbols in prose \\
+Unnumbered & \texttt{\textbackslash[...\textbackslash]}  & Emphasis, no reference needed \\
+Numbered   & \texttt{equation}                   & Cross-referenceable \\
+Aligned    & \texttt{align}                      & Multi-line derivations \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\bibliographystyle{plain}
+\bibliography{sample}
+
+\end{document}
+\end{lstlisting}
+
+\vs
+\noindent
+\textbf{Archivo 2: \texttt{sample.bib}}
+
+\begin{lstlisting}[style=inlineStyle]
+@article{knuth1984literate,
+  author  = {Knuth, Donald E.},
+  title   = {Literate Programming},
+  journal = {The Computer Journal},
+  year    = {1984},
+  volume  = {27},
+  number  = {2},
+  pages   = {97--111}
+}
+
+@book{lamport1994latex,
+  author    = {Lamport, Leslie},
+  title     = {\LaTeX: A Document Preparation System},
+  edition   = {2nd},
+  publisher = {Addison-Wesley},
+  year      = {1994}
+}
+
+@article{gurland1971simple,
+  author  = {Gurland, John and Tripathi, Ram C.},
+  title   = {A Simple Approximation for Unbiased Estimation
+             of the Standard Deviation},
+  journal = {The American Statistician},
+  year    = {1971},
+  volume  = {25},
+  number  = {4},
+  pages   = {30--32}
+}
+\end{lstlisting}
+\end{infobox}
+
+\begin{warningbox}{La compilación con bibliografía requiere cuatro pasos}
+Una única pasada de \texttt{pdflatex} no es suficiente cuando el
+documento contiene comandos \verb|\cite{}|. La secuencia completa es:
+
+\begin{verbatim}
+pdflatex report.tex
+bibtex report
+pdflatex report.tex
+pdflatex report.tex
+\end{verbatim}
+
+La primera pasada crea el archivo \texttt{.aux} que enumera todas las
+claves de cita. \texttt{bibtex} lee el archivo \texttt{.aux} y la
+base de datos \texttt{.bib} para producir un archivo \texttt{.bbl}
+que contiene la bibliografía formateada. La segunda y tercera pasadas
+de \texttt{pdflatex} incorporan la bibliografía y resuelven todas las
+referencias cruzadas. La ejecución de \texttt{latexmk -pdf report.tex}
+realiza todas las pasadas necesarias de manera automática.
+\end{warningbox}
+
+\begin{table}[htbp]
+\centering
+\caption{Modos de presentación de ecuaciones en \LaTeX{}}
+\label{tab:equation-modes}
+\begin{tabular}{p{2.8cm} p{4.2cm} p{2.5cm} p{4.5cm}}
+\toprule
+\textbf{Modo} & \textbf{Sintaxis} & \textbf{Estilo de salida} & \textbf{Notas} \\
+\midrule
+En línea & \verb|$...$| & Dentro del texto, compacto & Se utiliza para símbolos y expresiones breves en la prosa \\
+Presentación (heredado) & \verb|$$...$$| & Centrado, tamaño completo & Obsoleto; evítese en documentos nuevos \\
+Presentación (preferido) & \verb|\[...\]| & Centrado, tamaño completo & Se utiliza para ecuaciones de presentación sin numerar \\
+Numerado & \verb|\begin{equation}| \verb|...\end{equation}| & Centrado con número & Referenciable mediante \verb|\label|/\verb|\ref| \\
+Alineado de varias líneas & \verb|\begin{align}| \verb|...\end{align}| & Varias líneas, alineadas en \verb|&| & Cada línea puede llevar su propia \verb|\label| \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+%================================================================
+\section{Estructura del documento}
+\label{sec:latex-structure}
+%================================================================
+
+Todo archivo fuente de \LaTeX{} consta de dos partes: el
+\emph{preámbulo} (todo lo que antecede a \verb|\begin{document}|) y el
+\emph{cuerpo} (todo lo que se encuentra entre \verb|\begin{document}|
+y \verb|\end{document}|). El preámbulo declara la clase de documento,
+carga paquetes con \verb|\usepackage{...}| y establece los metadatos.
+El cuerpo contiene el contenido visible, organizado mediante comandos
+de seccionamiento.
+
+\begin{lstlisting}[style=inlineStyle, caption={Documento mínimo compilable con preámbulo y seccionamiento}]
+\documentclass{article}
+
+% --- Preambulo ---
+\usepackage{amsmath}    % matematicas extendidas
+\usepackage{graphicx}   % figuras
+\usepackage{booktabs}   % tablas profesionales
+\usepackage{hyperref}   % enlaces navegables
+
+\title{My First Report}
+\author{Alice Smith}
+\date{\today}
+
+% --- Cuerpo ---
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+This is the introduction.
+
+\subsection{Background}
+Some background material.
+
+\subsubsection{Details}
+More specific details.
+
+\section{Methods}
+Description of methods.
+
+\end{document}
+\end{lstlisting}
+
+El comando \verb|\usepackage{...}| carga paquetes de extensión. Los
+paquetes más relevantes para este programa son \texttt{amsmath}
+(matemáticas extendidas), \texttt{graphicx} (figuras),
+\texttt{booktabs} (tablas) y \texttt{hyperref} (enlaces navegables).
+
+%================================================================
+\section{Matemáticas en \LaTeX{}: una hoja de referencia}
+\label{sec:latex-math}
+%================================================================
+
+\LaTeX{} distingue dos modos matemáticos. El modo en línea
+(\verb|$...$|) compone matemáticas dentro de una línea de texto. El
+modo de presentación (\verb|\[...\]| o el entorno \texttt{equation})
+centra las matemáticas en su propia línea y, al utilizar
+\texttt{equation}, asigna un número de ecuación. Utilice el modo de
+presentación para cualquier expresión que merezca su propio énfasis
+visual, y el modo en línea para símbolos incrustados en la prosa.
+
+%----------------------------------------------------------------
+\subsection{Notación matemática común}
+%----------------------------------------------------------------
+
+\begin{longtable}{p{3.2cm} p{4.5cm} p{3.0cm} p{3.5cm}}
+\caption{Notación matemática común en \LaTeX{}} \label{tab:latex-math-cheatsheet} \\
+\toprule
+\textbf{Categoría} & \textbf{Código fuente \LaTeX{}} & \textbf{Renderizado} & \textbf{Notas} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Categoría} & \textbf{Código fuente \LaTeX{}} & \textbf{Renderizado} & \textbf{Notas} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{4}{r}{\emph{Continúa en la página siguiente}} \\
+\endfoot
+\bottomrule
+\endlastfoot
+
+% --- Modos en linea y de presentacion ---
+\multicolumn{4}{l}{\textbf{Modos en línea y de presentación}} \\
+\midrule
+Matemática en línea & \verb|$x + y = z$| & $x + y = z$ & Dentro de una oración \\
+Matemática en presentación & \verb|\[ x + y = z \]| & (bloque centrado) & Sin número \\
+Ecuación numerada & \verb|\begin{equation}...\end{equation}| & (con número) & Referenciable \\
+\midrule
+
+% --- Aritmetica basica ---
+\multicolumn{4}{l}{\textbf{Aritmética básica}} \\
+\midrule
+Suma & \verb|a + b| & $a+b$ & \\
+Resta & \verb|a - b| & $a-b$ & \\
+Multiplicación (punto) & \verb|a \cdot b| & $a \cdot b$ & Preferido en matemáticas \\
+Multiplicación (cruz) & \verb|a \times b| & $a \times b$ & Vectores, producto vectorial \\
+División & \verb|\frac{a}{b}| & $\frac{a}{b}$ & Utilice siempre \verb|\frac| en presentación \\
+Superíndice & \verb|x^{2}| & $x^{2}$ & Se requieren llaves para >1 carácter \\
+Subíndice & \verb|x_{i}| & $x_{i}$ & Se requieren llaves para >1 carácter \\
+Ambos & \verb|x_{i}^{2}| & $x_{i}^{2}$ & \\
+\midrule
+
+% --- Funciones comunes ---
+\multicolumn{4}{l}{\textbf{Funciones comunes}} \\
+\midrule
+Raíz cuadrada & \verb|\sqrt{x}| & $\sqrt{x}$ & \\
+Raíz $n$-ésima & \verb|\sqrt[n]{x}| & $\sqrt[n]{x}$ & \\
+Exponencial & \verb|e^{x}| o \verb|\exp(x)| & $e^{x}$ & \verb|\exp| preferido en presentación \\
+Logaritmo natural & \verb|\ln x| & $\ln x$ & \\
+Logaritmo en base $b$ & \verb|\log_{b} x| & $\log_{b} x$ & \\
+Seno & \verb|\sin x| & $\sin x$ & Utilice \verb|\sin|, no \texttt{sin} \\
+Coseno & \verb|\cos x| & $\cos x$ & \\
+Valor absoluto & \verb+|x|+ o \verb|\lvert x \rvert| & $\lvert x \rvert$ & \verb|\lvert| se escala con el contenido \\
+Parte entera inferior & \verb|\lfloor x \rfloor| & $\lfloor x \rfloor$ & \\
+Parte entera superior & \verb|\lceil x \rceil| & $\lceil x \rceil$ & \\
+\midrule
+
+% --- Sumatoria e integracion ---
+\multicolumn{4}{l}{\textbf{Sumatoria e integración}} \\
+\midrule
+Sumatoria & \verb|\sum_{i=1}^{n} x_i| & $\sum_{i=1}^{n} x_i$ & Límites arriba/abajo en presentación \\
+Productoria & \verb|\prod_{i=1}^{n} x_i| & $\prod_{i=1}^{n} x_i$ & \\
+Integral & \verb|\int_{a}^{b} f(x)\,dx| & $\int_{a}^{b} f(x)\,dx$ & \verb|\,| añade un espacio fino antes de $dx$ \\
+Límite & \verb|\lim_{x \to 0} f(x)| & $\lim_{x \to 0} f(x)$ & \\
+\midrule
+
+% --- Letras griegas ---
+\multicolumn{4}{l}{\textbf{Letras griegas (comunes en bioestadística y aprendizaje automático)}} \\
+\midrule
+alfa & \verb|\alpha| & $\alpha$ & Nivel de significancia, tasa de aprendizaje \\
+beta & \verb|\beta| & $\beta$ & Coeficientes de regresión \\
+gamma & \verb|\gamma|, \verb|\Gamma| & $\gamma$, $\Gamma$ & Distribución gamma \\
+delta & \verb|\delta|, \verb|\Delta| & $\delta$, $\Delta$ & Cambio, delta de Dirac \\
+épsilon & \verb|\epsilon|, \verb|\varepsilon| & $\epsilon$, $\varepsilon$ & Cantidad pequeña \\
+theta & \verb|\theta|, \verb|\Theta| & $\theta$, $\Theta$ & Parámetros, ángulo \\
+lambda & \verb|\lambda|, \verb|\Lambda| & $\lambda$, $\Lambda$ & Tasa de Poisson, valor propio \\
+mu & \verb|\mu| & $\mu$ & Media \\
+nu & \verb|\nu| & $\nu$ & Grados de libertad \\
+pi & \verb|\pi|, \verb|\Pi| & $\pi$, $\Pi$ & 3{,}14\ldots, productoria \\
+rho & \verb|\rho| & $\rho$ & Correlación \\
+sigma & \verb|\sigma|, \verb|\Sigma| & $\sigma$, $\Sigma$ & Desviación estándar, sumatoria \\
+tau & \verb|\tau| & $\tau$ & Constante de tiempo \\
+phi & \verb|\phi|, \verb|\Phi| & $\phi$, $\Phi$ & CDF normal, ángulo \\
+chi & \verb|\chi| & $\chi$ & Prueba de chi-cuadrado \\
+omega & \verb|\omega|, \verb|\Omega| & $\omega$, $\Omega$ & Frecuencia, espacio muestral \\
+\midrule
+
+% --- Relaciones y logica ---
+\multicolumn{4}{l}{\textbf{Relaciones y lógica}} \\
+\midrule
+Distinto de & \verb|\neq| & $\neq$ & \\
+Menor/mayor o igual & \verb|\leq|, \verb|\geq| & $\leq$, $\geq$ & \\
+Aproximadamente & \verb|\approx| & $\approx$ & \\
+Proporcional a & \verb|\propto| & $\propto$ & \\
+Distribuido como & \verb|\sim| & $\sim$ & \\
+Para todo & \verb|\forall| & $\forall$ & \\
+Existe & \verb|\exists| & $\exists$ & \\
+Implica & \verb|\Rightarrow| & $\Rightarrow$ & \\
+Si y sólo si & \verb|\Leftrightarrow| & $\Leftrightarrow$ & \\
+Pertenece a & \verb|\in| & $\in$ & \\
+Subconjunto & \verb|\subset|, \verb|\subseteq| & $\subset$, $\subseteq$ & \\
+Unión, intersección & \verb|\cup|, \verb|\cap| & $\cup$, $\cap$ & \\
+\midrule
+
+% --- Conjuntos numericos ---
+\multicolumn{4}{l}{\textbf{Conjuntos numéricos}} \\
+\midrule
+Números reales & \verb|\mathbb{R}| & $\mathbb{R}$ & Requiere \texttt{amsfonts} o \texttt{amssymb} \\
+Números naturales & \verb|\mathbb{N}| & $\mathbb{N}$ & \\
+Enteros & \verb|\mathbb{Z}| & $\mathbb{Z}$ & \\
+Racionales & \verb|\mathbb{Q}| & $\mathbb{Q}$ & \\
+Complejos & \verb|\mathbb{C}| & $\mathbb{C}$ & \\
+\midrule
+
+% --- Vectores y matrices ---
+\multicolumn{4}{l}{\textbf{Vectores y matrices}} \\
+\midrule
+Vector en negrita & \verb|\mathbf{x}| & $\mathbf{x}$ & Preferido en estadística \\
+Vector con flecha & \verb|\vec{x}| & $\vec{x}$ & Convención física \\
+Transpuesta & \verb|A^{\top}| o \verb|A^T| & $A^{\top}$ & \\
+Matriz $2\times 2$ & \verb|\begin{bmatrix} a & b \\ c & d \end{bmatrix}| & $\begin{bmatrix} a & b \\ c & d \end{bmatrix}$ & Requiere \texttt{amsmath} \\
+Norma & \verb+\|x\|+ & $\|x\|$ & \\
+Producto interno & \verb|\langle x, y \rangle| & $\langle x, y \rangle$ & \\
+
+\end{longtable}
+
+%================================================================
+\section{Figuras}
+\label{sec:latex-figures}
+%================================================================
+
+Las figuras se incluyen utilizando el entorno flotante \texttt{figure}
+y el comando \verb|\includegraphics| del paquete \texttt{graphicx}. El
+compilador \texttt{pdflatex} acepta los formatos de imagen PDF, PNG y
+JPG.
+
+\begin{lstlisting}[style=inlineStyle, caption={Inclusión de una figura en \LaTeX{}}]
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.7\textwidth]{images/my-plot.png}
+    \caption{Description of the figure.}
+    \label{fig:my-plot}
+\end{figure}
+\end{lstlisting}
+
+La opción \texttt{[htbp]} sugiere preferencias de ubicación a
+\LaTeX{}: aquí (\emph{here}), arriba (\emph{top}), abajo
+(\emph{bottom}) o en una página dedicada. Los comandos
+\verb|\caption| y \verb|\label| proporcionan una leyenda numerada y un
+objetivo de referencia cruzada, respectivamente.
+
+%================================================================
+\section{Tablas}
+\label{sec:latex-tables}
+%================================================================
+
+Las tablas se construyen con el flotante \texttt{table} y el entorno
+\texttt{tabular}. El paquete \texttt{booktabs} proporciona líneas
+horizontales limpias. Por convención, las líneas verticales
+(\texttt{|}) se omiten en los documentos profesionales; las líneas
+horizontales de \texttt{booktabs} son suficientes.
+
+\begin{lstlisting}[style=inlineStyle, caption={Una tabla mínima con booktabs}]
+\begin{table}[htbp]
+\centering
+\caption{Sample measurements}
+\label{tab:sample}
+\begin{tabular}{lrr}
+\toprule
+Subject & Height (cm) & Weight (kg) \\
+\midrule
+Alice   & 165         & 60          \\
+Bob     & 178         & 75          \\
+Carol   & 172         & 68          \\
+\bottomrule
+\end{tabular}
+\end{table}
+\end{lstlisting}
+
+%================================================================
+\section{Bibliografía}
+\label{sec:latex-bibliography}
+%================================================================
+
+\LaTeX{} gestiona las bibliografías mediante un archivo externo
+(\texttt{.bib}) y un comando de estilo. El comando \verb|\cite{key}|
+inserta una cita en cualquier punto del texto; los comandos
+\verb|\bibliography{filename}| y \verb|\bibliographystyle{plain}|
+generan la lista de referencias.
+
+Para una gestión bibliográfica más sofisticada, el paquete
+\texttt{biblatex} con el motor \texttt{biber} es preferido en los
+documentos modernos. El preámbulo compartido de este repositorio
+tiene el soporte bibliográfico comentado; los estudiantes que
+escriban informes independientes deben descomentarlo y configurarlo.
+
+%================================================================
+\section{LaTeX Workshop en Visual Studio Code}
+\label{sec:latex-workshop}
+%================================================================
+
+La extensión LaTeX Workshop para VSC (mencionada en la
+Sección~\ref{sec:extensions}) proporciona un flujo de trabajo
+integrado completo: resaltado de sintaxis, vista previa de PDF en
+vivo, compilación con un solo clic y navegación de errores. Una vez
+instalada, al abrir cualquier archivo \texttt{.tex} se activa la
+extensión automáticamente. El atajo de compilación es
+\texttt{Ctrl+Alt+B} (Windows/Linux) o \texttt{Cmd+Option+B} (macOS),
+que ejecuta \texttt{pdflatex} y muestra el resultado en el visor de
+PDF integrado. Los estudiantes no necesitan utilizar la línea de
+comandos para la compilación después de configurar esto; el enfoque
+por línea de comandos de la Sección~\ref{sec:first-latex-doc} se
+presenta primero para que se comprenda el proceso subyacente.
+
+%================================================================
+\section{Resumen}
+\label{sec:latex-summary}
+%================================================================
+
+Este capítulo introdujo \LaTeX{}, el sistema de preparación de
+documentos utilizado a lo largo de este programa y ampliamente
+adoptado como el estándar en ciencia y matemáticas:
+
+\begin{itemize}
+    \item \textbf{Qué es \LaTeX{}.} Un lenguaje de marcado de texto
+          plano compilado en PDF compuestos tipográficamente, en
+          contraste con los procesadores de texto WYSIWYG.
+    \item \textbf{El flujo de trabajo desde la fuente hasta el PDF.}
+          Escribir un archivo \texttt{.tex} en un editor de texto,
+          compilar con \texttt{pdflatex} o \texttt{latexmk} y
+          visualizar el PDF resultante.
+    \item \textbf{Estructura del documento.} El preámbulo (clase de
+          documento, paquetes, metadatos) y el cuerpo (contenido
+          organizado con \verb|\section|, \verb|\subsection| y
+          \verb|\subsubsection|).
+    \item \textbf{Matemáticas en línea y en presentación.} Signos de
+          dólar para matemáticas en línea y \verb|\[...\]| o el
+          entorno \texttt{equation} para matemáticas en modo
+          presentación.
+    \item \textbf{Modos de ecuación.} Existen cinco modos: en línea
+          (\verb|$...$|), presentación heredada (\verb|$$...$$|,
+          obsoleto), presentación sin numerar preferida
+          (\verb|\[...\]|), numerado (\texttt{equation}) y alineado de
+          varias líneas (\texttt{align}). Utilice \verb|\[...\]| para
+          ecuaciones sin numerar y \texttt{equation} para ecuaciones
+          de presentación referenciables.
+    \item \textbf{La hoja de referencia matemática.} Una tabla de
+          referencia exhaustiva (Tabla~\ref{tab:latex-math-cheatsheet})
+          que abarca aritmética, funciones, sumatoria, integración,
+          letras griegas, relaciones, conjuntos numéricos y
+          vectores/matrices.
+    \item \textbf{Figuras y tablas.} Entornos flotantes con
+          \verb|\includegraphics|, \texttt{tabular} y
+          \texttt{booktabs} para un formato profesional.
+    \item \textbf{Flujo de trabajo bibliográfico.} Un archivo
+          \texttt{.bib} almacena las entradas de referencia. El
+          comando \verb|\cite{key}| inserta una cita;
+          \verb|\bibliography{filename}| y
+          \verb|\bibliographystyle{plain}| generan la lista de
+          referencias. Los documentos con citas requieren una
+          secuencia de compilación de cuatro pasos: dos pasadas de
+          \texttt{pdflatex} que encierran una pasada de
+          \texttt{bibtex}, seguida de una \texttt{pdflatex} final.
+          \texttt{latexmk} se encarga de esto automáticamente.
+    \item \textbf{LaTeX Workshop.} La extensión de VSC que
+          proporciona resaltado de sintaxis, vista previa en vivo y
+          compilación con un solo clic, eliminando la necesidad de
+          compilación por línea de comandos en el uso diario.
+\end{itemize}

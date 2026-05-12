@@ -1,0 +1,315 @@
+% ============================================================
+%  Capítulo: Interfaces de línea de comandos, entornos virtuales
+%            y scripting de intérprete para Windows y Linux
+% ============================================================
+%  Dependencias (agregar al preámbulo si aún no están presentes):
+%    \usepackage{listings}
+%    \usepackage{xcolor}
+%    \usepackage{booktabs}
+%    \usepackage{hyperref}
+%    \usepackage{tcolorbox}
+%    \usepackage{fontawesome5}   % opcional, para iconos
+% ============================================================
+
+
+% ============================================================
+\chapter{Interfaces de línea de comandos, entornos virtuales
+         y scripting de intérprete}
+\label{ch:cli-scripting}
+% ============================================================
+
+% ============================================================
+\section{¿Qué es un archivo?}
+\label{sec:what-is-a-file}
+% ============================================================
+
+\subsection{Archivos y texto}
+
+Un archivo es una secuencia nombrada de bytes almacenada en un dispositivo de
+almacenamiento. Desde la perspectiva de la computadora, todos los archivos son
+secuencias de bytes. Lo que distingue a un script de Python de una fotografía
+no es el mecanismo de almacenamiento sino la interpretación: un editor de
+texto interpreta los bytes como caracteres; un visor de imágenes los
+interpreta como valores de píxeles. Un archivo de Python es texto plano: cada
+carácter que usted escribe se almacena como un byte, y el intérprete de
+Python lee esos bytes como instrucciones. Por esta razón un documento de Word
+no puede servir como un programa de Python; Word almacena bytes de formato
+invisibles junto con el texto.
+
+\subsection{El sistema de archivos: carpetas y rutas}
+
+Cada archivo reside dentro de una carpeta (también llamada directorio). Las
+carpetas pueden contener otras carpetas, formando un árbol. La ubicación de
+cualquier archivo puede describirse mediante una \emph{ruta}: una secuencia
+de nombres de carpetas separados por un delimitador, que termina con el
+nombre del archivo.
+
+\begin{table}[htbp]
+\centering
+\caption{Sintaxis de rutas en cada sistema operativo.}
+\label{tab:path-syntax}
+\begin{tabular}{p{3.5cm} p{9cm}}
+\toprule
+\textbf{Sistema operativo} & \textbf{Ruta de ejemplo} \\
+\midrule
+Windows & \texttt{C:\textbackslash Users\textbackslash Alice\textbackslash Documents\textbackslash hello.py} \\
+macOS   & \texttt{/Users/alice/Documents/hello.py} \\
+Linux   & \texttt{/home/alice/Documents/hello.py} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Windows utiliza barras invertidas y una letra de unidad; macOS y Linux
+utilizan barras diagonales y parten de una raíz \texttt{/}.
+
+\subsection{El directorio de trabajo}
+
+En cualquier momento, la línea de comandos está «dentro» de una carpeta en
+particular, llamada el \emph{directorio de trabajo actual} (CWD, por sus
+siglas en inglés). Los comandos que hacen referencia a archivos sin una ruta
+completa se interpretan relativos a esa carpeta. Cuando usted escribe
+\texttt{python hello.py}, el intérprete busca \texttt{hello.py} en el CWD. Si
+el archivo se encuentra en otra ubicación, el comando falla. Comprender el
+CWD es la fuente más común de confusión para las personas que recién empiezan
+a usar la línea de comandos y la causa raíz de la mayoría de los errores de
+«archivo no encontrado».
+
+La línea de comandos proporciona los comandos para navegar el sistema de
+archivos, inspeccionar su contenido y ejecutar archivos; estos se presentan
+en la siguiente sección.
+
+% ============================================================
+
+\begin{quote}
+\textit{«La línea de comandos es la interfaz más poderosa jamás inventada.
+También es la más intimidante. Este capítulo pretende cambiar eso.»}
+\end{quote}
+
+% ============================================================
+\section{Introducción: ¿qué es una interfaz de línea de comandos?}
+\label{sec:cli-intro}
+% ============================================================
+
+Cuando usted utiliza una computadora, seguramente interactúa con ella a
+través de una \textbf{interfaz gráfica de usuario} (GUI, por sus siglas en
+inglés): ventanas, iconos, menús y botones sobre los que hace clic con el
+ratón. Las GUI son intuitivas y visualmente ricas, pero tienen una
+limitación fundamental: cada acción posible debe haber sido anticipada e
+implementada como un botón o elemento de menú por la persona que desarrolló
+el software. Si usted necesita hacer algo para lo que la GUI no fue diseñada,
+queda bloqueado.
+
+Una \textbf{interfaz de línea de comandos} (CLI) resuelve esto al permitirle
+comunicarse con la computadora mediante \emph{texto}. Usted escribe un
+comando; la computadora lo ejecuta y responde con texto. Esto no es un paso
+atrás; es un modo de interacción diferente y, en muchos contextos, más
+poderoso.
+
+\subsection{Una analogía concreta}
+
+Piense en la diferencia entre un restaurante con un menú fijo y un
+restaurante donde usted puede describir exactamente lo que desea al chef.
+Una GUI es el menú fijo: rápida, amigable y suficientemente buena para la
+mayoría de los clientes. Una CLI es hablar directamente con el chef: requiere
+más conocimiento de los ingredientes, pero los resultados pueden ser
+precisamente lo que usted necesita, y puede combinarlos de formas que el
+menú nunca anticipó.
+
+\subsection{Por qué las personas que desarrollan y las que investigan usan la CLI}
+
+\begin{itemize}
+  \item \textbf{Automatización.} Una secuencia de comandos puede guardarse
+        en un archivo (llamado \emph{script}) y reproducirse a la perfección
+        cada vez.
+  \item \textbf{Precisión.} Cada opción y parámetro es explícito y legible.
+  \item \textbf{Acceso remoto.} Los servidores en la nube rara vez disponen
+        de un escritorio gráfico; la CLI es a menudo la única vía de entrada.
+  \item \textbf{Velocidad.} Cambiar el nombre de 10{,}000 archivos requiere
+        un solo comando; hacerlo a mano en una GUI podría tomar horas.
+  \item \textbf{Reproducibilidad.} Usted puede compartir un script con una
+        persona colega y saber que obtendrá exactamente el mismo resultado.
+\end{itemize}
+
+\subsection{Los dos mundos principales de la CLI}
+
+Este capítulo se centra en dos entornos de CLI:
+
+\begin{description}
+  \item[Command Prompt / PowerShell de Windows] Las herramientas CLI nativas
+        en Microsoft Windows. Los archivos por lotes (\texttt{.bat}) y los
+        scripts de PowerShell (\texttt{.ps1}) automatizan tareas aquí.
+  \item[Bash (Linux / macOS)] El intérprete de comandos dominante en
+        sistemas Linux y macOS. Los scripts de intérprete (\texttt{.sh})
+        automatizan tareas aquí.
+\end{description}
+
+Estos dos mundos utilizan sintaxis diferentes, convenciones de ruta diferentes
+(barra invertida \texttt{\textbackslash} vs.\ barra diagonal \texttt{/}) y
+filosofías de scripting diferentes. Un objetivo clave de este capítulo es
+ayudarle a desplazarse con fluidez entre ellos.
+
+\subsection{Sus primeros comandos}
+
+La mejor manera de desmitificar la CLI es probarla. La
+Tabla~\ref{tab:first-commands} muestra comandos equivalentes en ambos
+entornos.
+
+\begin{table}[h]
+\centering
+\caption{Comandos CLI equivalentes: Windows vs.\ Linux/macOS}
+\label{tab:first-commands}
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Tarea} & \textbf{Windows (CMD)} & \textbf{Linux / macOS (Bash)} \\
+\midrule
+Mostrar directorio actual   & \texttt{cd}              & \texttt{pwd}             \\
+Listar archivos             & \texttt{dir}             & \texttt{ls -la}          \\
+Cambiar de directorio       & \texttt{cd foldername}   & \texttt{cd foldername}   \\
+Subir un nivel              & \texttt{cd ..}           & \texttt{cd ..}           \\
+Crear una carpeta           & \texttt{mkdir myfolder}  & \texttt{mkdir myfolder}  \\
+Eliminar un archivo         & \texttt{del file.txt}    & \texttt{rm file.txt}     \\
+Copiar un archivo           & \texttt{copy a.txt b.txt}& \texttt{cp a.txt b.txt}  \\
+Imprimir texto en pantalla  & \texttt{echo Hello}      & \texttt{echo Hello}      \\
+Limpiar la pantalla         & \texttt{cls}             & \texttt{clear}           \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{tipbox}
+En ambos entornos, presionar la tecla de \textbf{flecha arriba} recupera sus
+comandos anteriores, y presionar \textbf{Tab} autocompleta nombres de
+archivos y directorios. Solamente estos dos hábitos acelerarán
+notablemente su trabajo en la línea de comandos.
+\end{tipbox}
+
+% ============================================================
+\section{Dos mundos: Windows y Linux/Mac}
+\label{sec:two-worlds}
+% ============================================================
+
+Antes de escribir cualquier script, conviene comprender las diferencias
+filosóficas entre la forma en que Windows y Linux manejan la línea de
+comandos. Estas diferencias no son arbitrarias; reflejan décadas de
+historias de diseño divergentes.
+
+\subsection{Rutas y separadores}
+
+Windows utiliza \emph{barras invertidas} y letras de unidad para describir
+ubicaciones de archivos:
+\begin{lstlisting}[style=windowsStyle,escapeinside={(*@}{@*)}]
+C:\Users\DrG\Documents\(*@\ProjectName@*)\main.py
+\end{lstlisting}
+
+Linux utiliza \emph{barras diagonales} y un único árbol de archivos
+unificado que tiene como raíz \texttt{/}:
+\begin{lstlisting}[style=linuxStyle,escapeinside={(*@}{@*)}]
+/home/drg/(*@\ProjectName@*)/main.py
+\end{lstlisting}
+
+\subsection{Scripts y ejecutabilidad}
+
+En Windows, la extensión del archivo determina si un archivo es ejecutable.
+Los archivos que terminan en \texttt{.bat}, \texttt{.cmd} o \texttt{.exe}
+se tratan como programas.
+
+En Linux, la extensión es irrelevante. La ejecutabilidad es un
+\emph{permiso} almacenado en el archivo mismo. Debe otorgarse
+explícitamente permiso de ejecución a un archivo antes de que el sistema
+lo ejecute. Esto se hace con el comando \texttt{chmod}, que cubrimos en
+la Sección~\ref{sec:chmod}.
+
+\subsection{Variables de entorno y PATH}
+
+Ambos sistemas utilizan una variable de entorno llamada \texttt{PATH} para
+encontrar programas. Cuando usted escribe un comando, el intérprete de
+comandos busca en cada directorio listado en \texttt{PATH} en orden y
+ejecuta la primera coincidencia que encuentra.
+
+\begin{itemize}
+  \item \textbf{Windows:} PATH se administra a través de Propiedades del
+        sistema $\to$ Variables de entorno, o mediante el comando
+        \texttt{setx}.
+  \item \textbf{Linux:} PATH se configura en archivos de configuración como
+        \texttt{\textasciitilde/.bashrc} (para el intérprete Bash) o
+        \texttt{\textasciitilde/.zshrc} (para Zsh), los cuales se leen cada
+        vez que se inicia una nueva sesión de terminal.
+\end{itemize}
+
+% ============================================================
+\section{WSL: un entorno Linux dentro de Windows}
+\label{sec:wsl}
+% ============================================================
+
+Para las personas que utilizan Windows y desean el poder del scripting de
+Linux sin abandonar su entorno familiar, Microsoft proporciona el
+\textbf{Subsistema de Windows para Linux} (WSL). WSL no es un emulador ni
+una máquina virtual en el sentido tradicional; es una capa de compatibilidad
+integrada en Windows que ejecuta un núcleo Linux real junto al núcleo de
+Windows.
+
+\subsection{Qué le ofrece WSL}
+
+\begin{itemize}
+  \item Un intérprete Bash completo (o Zsh, Fish, etc.)
+  \item Un sistema de archivos completo de Ubuntu (u otra distribución)
+  \item Acceso a miles de herramientas de línea de comandos de Linux a
+        través de \texttt{apt}
+  \item La capacidad de leer y escribir archivos de Windows desde Linux
+        (su unidad \texttt{C:} de Windows aparece en \texttt{/mnt/c/})
+  \item Acceso a GPU para cargas de trabajo de aprendizaje automático
+\end{itemize}
+
+\subsection{Instalación de WSL}
+
+Abra PowerShell o CMD \emph{como Administrador} y ejecute:
+
+\begin{lstlisting}[style=windowsStyle, caption={Instalación de WSL desde PowerShell}]
+wsl --install
+\end{lstlisting}
+
+Esto instala WSL 2 y la distribución Ubuntu de forma predeterminada.
+Después de reiniciar, se abrirá una terminal de Ubuntu y le pedirá que cree
+un nombre de usuario y una contraseña. Esa cuenta es independiente de su
+inicio de sesión de Windows.
+
+\begin{notebox}
+A lo largo del resto de este capítulo, todas las instrucciones para Linux
+se aplican por igual a WSL en Windows y a una máquina Linux nativa.
+Trátelas como el mismo entorno.
+\end{notebox}
+
+\subsection{La solución elegante: Visual Studio Code y la extensión WSL}
+\label{subsec:vscode-wsl}
+
+Uno de los aspectos más poderosos de WSL es su integración con
+\textbf{Visual Studio Code} (VS Code), el editor de código gratuito de
+Microsoft. La instalación de la \textbf{extensión WSL} en VS Code crea un
+puente sin interrupciones entre su escritorio de Windows y su entorno de
+Linux:
+
+\begin{itemize}
+  \item Usted abre VS Code desde la terminal de WSL escribiendo
+        \texttt{code .}
+  \item VS Code ejecuta su interfaz en Windows pero ejecuta todo el código,
+        los comandos de terminal, las extensiones y los depuradores
+        \emph{dentro de Linux}
+  \item El explorador de archivos muestra su sistema de archivos de Linux
+  \item La terminal integrada es un intérprete Bash
+  \item Los entornos de Python, los linters y los formateadores se resuelven
+        a sus versiones de Linux
+\end{itemize}
+
+Esto significa que usted nunca tiene que elegir entre el ecosistema de
+scripting de Linux y la experiencia de escritorio de Windows: obtiene ambos
+simultáneamente. A partir de este punto, cuando digamos «abra VS Code»,
+nos referiremos a iniciarlo desde la terminal de WSL con \texttt{code .}
+
+\begin{tipbox}
+Para instalar la extensión WSL, abra VS Code, presione
+\texttt{Ctrl+Shift+X} para abrir el panel de Extensiones y busque
+«WSL» (editor: Microsoft). Un clic la instala.
+\end{tipbox}
+
+% ============================================================
+% Fin del capítulo
+% ============================================================

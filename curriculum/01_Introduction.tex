@@ -1,0 +1,226 @@
+%================================================================
+\chapter{Introduction}
+\addcontentsline{toc}{chapter}{Introduction}
+\markboth{Introduction}{Introduction}
+%================================================================
+
+\begin{infobox}
+This document is \textbf{not} intended to be read from cover to cover.
+Faculty and staff who are already comfortable with \LaTeX{}, Git, and
+Python may proceed directly to the course-unit chapters. Those new to
+one or more of the supporting tools should consult the relevant
+infrastructure chapter first. Use the routing table on the following
+pages to identify which chapters apply to your background.
+\end{infobox}
+
+%================================================================
+\section*{Conventions Used in This Document}
+%================================================================
+
+\noindent
+\textbf{Callout boxes.} Four types of callout box appear in the text:
+
+\begin{itemize}
+    \item \textbf{Information} (teal border): reference material and
+          neutral context.
+    \item \textbf{Tip} (blue border): practical guidance and
+          shortcuts.
+    \item \textbf{Warning} (magenta border): critical cautions
+          that, if ignored, will cause errors or data loss.
+    \item \textbf{Note} (orange border): items requiring attention
+          but not critical.
+\end{itemize}
+
+\noindent
+\textbf{Code listings.} All commands intended to be typed in a
+terminal are shown in monospace code blocks. Windows commands use a
+dark background; Linux/macOS commands use a lighter background.
+Commands that work identically on all platforms use the neutral
+listing style.
+
+\noindent
+\textbf{Cross-references.} Blue underlined text is a clickable
+hyperlink. References to chapters, sections, figures, and tables are
+also clickable in the PDF.
+
+%================================================================
+\section*{How This Document Is Organized}
+%================================================================
+
+The document is divided into two parts. The first part covers the
+technical infrastructure required to work with the curriculum
+repository: setting up the software environment, using the
+command-line interface, writing in \LaTeX{}, managing versions with
+Git and GitHub, and working with local language-model tools. These
+chapters are written for faculty and staff who may not have a
+background in software development; experienced contributors may skim
+or skip them entirely.
+
+The second part contains the course-unit chapters. Each unit
+corresponds to one course in the department catalog and documents the
+course title, student learning outcomes (SLOs), topical outline, and
+assessment strategy. Units are numbered by their catalog identifier
+(for example, unit 1023 corresponds to \textsc{Math 1023}). The
+chapters within each part are independent; a reader interested only
+in a specific course need not read any other unit chapter.
+
+%================================================================
+\section*{Chapter Dependencies}
+%================================================================
+
+      \renewcommand{\thefigure}{\arabic{figure}}
+      \setcounter{figure}{0}
+      Figure~\ref{fig:dependencies} shows the dependency structure of the
+      infrastructure chapters. A solid arrow indicates a hard dependency:
+      the target chapter requires the source to be completed first. A
+      dashed arrow indicates recommended order only.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    node distance=1.6cm and 2.4cm,
+    every node/.style={font=\small},
+    req/.style={rectangle, rounded corners, draw=colorRequired,
+                fill=colorRequired!15, text width=3.2cm, align=center,
+                minimum height=0.9cm},
+    ess/.style={rectangle, rounded corners, draw=colorEssential,
+                fill=colorEssential!15, text width=3.2cm, align=center,
+                minimum height=0.9cm},
+    des/.style={rectangle, rounded corners, draw=colorDesirable,
+                fill=colorDesirable!15, text width=3.2cm, align=center,
+                minimum height=0.9cm},
+    opt/.style={rectangle, rounded corners, draw=colorOptional,
+                fill=colorOptional!15, text width=3.2cm, align=center,
+                minimum height=0.9cm},
+    hardarrow/.style={->, thick},
+    softarrow/.style={->, dashed}
+]
+% Row 1
+\node[req] (env)  {Environment Setup};
+\node[req, right=of env] (cli) {CLI};
+\node[req, right=of cli] (prog) {Intro to Programming};
+
+% Row 2
+\node[ess, below=of env] (pyenv) {Python Environments};
+\node[des, below=of cli] (numops) {Numerical Operations};
+\node[req, below=of prog] (latex) {\LaTeX{}};
+
+% Row 3
+\node[req, below=of pyenv] (git) {Git and GitHub};
+\node[opt, below=of numops] (llm) {Local LLM};
+
+% Arrows
+\draw[hardarrow] (env) -- (cli);
+\draw[hardarrow] (cli) -- (prog);
+\draw[hardarrow] (env) -- (pyenv);
+\draw[hardarrow] (prog) -- (pyenv);
+\draw[softarrow] (pyenv) -- (numops);
+\draw[hardarrow] (pyenv) -- (git);
+\draw[softarrow] (cli) -- (latex);
+\draw[softarrow] (numops) -- (llm);
+\draw[softarrow] (git) -- (llm);
+\end{tikzpicture}
+\caption{Dependency graph for the infrastructure chapters. Solid arrows
+indicate hard dependencies; dashed arrows indicate recommended order. Node
+color encodes category: \textcolor{colorRequired}{\textbf{Required}},
+\textcolor{colorEssential}{\textbf{Essential}},
+\textcolor{colorDesirable}{\textbf{Desirable}},
+\textcolor{colorOptional}{\textbf{Optional}}.}
+\label{fig:dependencies}
+\end{figure}
+
+
+\begin{landscape}
+%================================================================
+\section*{Which Chapters Do You Need?}
+%================================================================
+
+Use Table~\ref{tab:routing} to identify your reading path based on your
+familiarity with the supporting tools. Chapters marked \textbf{Required}
+must be completed before working with the repository. \textbf{Skim} means
+read the section headings and run the exercises but skip the explanatory
+prose. \textbf{Skip} means the chapter is optional for your profile.
+
+\begin{table}[htbp]
+\centering
+\caption{Recommended reading path by prior experience with the toolchain.}
+\label{tab:routing}
+\footnotesize
+\begin{tabular}{l*{8}{c}}
+\toprule
+\textbf{Profile}
+  & \rotatebox{70}{Env.\ Setup}
+  & \rotatebox{70}{CLI}
+  & \rotatebox{70}{Intro Prog.}
+  & \rotatebox{70}{Python Envs.}
+  & \rotatebox{70}{Numerical Ops.}
+  & \rotatebox{70}{\LaTeX{}}
+  & \rotatebox{70}{Git}
+  & \rotatebox{70}{LLM} \\
+\midrule
+New to all tools
+  & $\bullet$ & $\bullet$ & $\bullet$ & $\bullet$ & $\bullet$
+  & $\bullet$ & $\bullet$ & S \\
+Familiar with \LaTeX{}, new to Python and Git
+  & $\bullet$ & $\bullet$ & $\bullet$ & $\bullet$ & S
+  & -- & $\bullet$ & S \\
+Familiar with Python and Git, new to \LaTeX{}
+  & $\bullet$ & S & S & S & --
+  & $\bullet$ & -- & S \\
+Experienced with all tools
+  & S & -- & -- & S & --
+  & -- & -- & S \\
+\bottomrule
+\end{tabular}
+
+\bigskip
+\noindent\footnotesize
+$\bullet$ = Required \quad S = Skim \quad -- = Skip
+\normalsize
+\end{table}
+
+%================================================================
+\section*{Progress Record}
+%================================================================
+
+The final chapter, Chapter~\ref{ch:assessment} (Assessment and Progress
+Record), organizes the key completion items from all infrastructure chapters
+into four categories: Required, Essential, Desirable, and Optional. Open
+the fillable PDF form in Adobe Acrobat Reader to record and save your
+responses. Use it throughout onboarding as a readiness checklist.
+
+\newpage
+%================================================================
+\section*{Estimated Completion Times}
+%================================================================
+
+Table~\ref{tab:times} shows estimated completion times per infrastructure
+chapter. Times assume no prior exposure to the topic; contributors with
+background in a given area will complete it faster. Course-unit chapters
+are read as reference material and are not included in this table; reading
+time for a single unit is approximately 20 to 30 minutes.
+
+\begin{table}[htbp]
+\centering
+\caption{Estimated completion time per infrastructure chapter.}
+\label{tab:times}
+\begin{tabular}{clr}
+\toprule
+\textbf{Chapter} & \textbf{Title} & \textbf{Estimated Time} \\
+\midrule
+1  & Environment Setup                              & 2 hours \\
+2  & Command-Line Interfaces and Shell Scripting    & 2 hours \\
+3  & Introduction to Programming Environments       & 2 hours \\
+4  & Python Virtual Environments and Workflow Automation & 1.5 hours \\
+5  & Numerical Operations with NumPy                & 2 hours \\
+6  & Introduction to \LaTeX{}                       & 1.5 hours \\
+7  & Version Control with Git and GitHub            & 1.5 hours \\
+8  & Local LLM Infrastructure with Ollama           & 1 hour (contributors) / 3 hours (administrators) \\
+9  & Assessment and Progress Record                 & Ongoing \\
+\midrule
+   & \textbf{Total (full path)}                     & \textbf{$\approx$ 13.5--15.5 hours} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\end{landscape}

@@ -1,0 +1,1177 @@
+%================================================================
+\chapter{Entornos virtuales de Python y automatización del flujo de trabajo}
+\label{ch:python-environments}
+%================================================================
+
+Antes de escribir cualquier script, necesitamos comprender \emph{qué} van a
+gestionar esos scripts: los entornos virtuales de Python.
+
+\textbf{El problema: conflictos entre paquetes}.
+Imagine que tiene dos proyectos en su computadora. El proyecto~A usa la
+versión~1.5 de una biblioteca llamada \texttt{numpy}; el proyecto~B requiere
+la versión~2.0. Si instala ambas versiones de forma global, entrarán en
+conflicto. Gana la última que se haya instalado, y uno de sus proyectos
+podría dejar de funcionar.
+
+\textbf{La solución: entornos virtuales}.
+Un \textbf{entorno virtual} (o \emph{venv}) es una copia aislada de Python
+con su propio conjunto de paquetes instalados, completamente separada de
+cualquier otro entorno en su máquina. Piénselo como una burbuja autocontenida
+alrededor de su proyecto.
+
+\begin{itemize}
+  \item Cada proyecto obtiene su propio entorno.
+  \item Los paquetes instalados en un entorno no pueden interferir con otro.
+  \item Puede recrear un entorno de manera exacta a partir de una lista de paquetes.
+  \item Eliminar un entorno es seguro y limpio.
+\end{itemize}
+
+Cubriremos dos estrategias para gestionar entornos: el enfoque tradicional
+mediante \texttt{pip} y una tendencia emergente llamada \texttt{uv}.
+
+%---------------------------------------------------------
+\section{Gestión tradicional de paquetes: \texttt{pip}}
+\label{sec:venvs}
+%---------------------------------------------------------
+\subsubsection{Windows (CMD o PowerShell)}
+
+\begin{lstlisting}[style=windowsStyle, caption={Creación de un venv en Windows},escapeinside={(*@}{@*)}]
+:: Navegue a la carpeta de su proyecto
+cd C:\Projects\(*@\ProjectName@*)
+
+:: Cree el entorno (Python debe estar instalado globalmente)
+python -m venv C:\penv\(*@\ProjectName@*)
+\end{lstlisting}
+
+\subsubsection{Linux / WSL}
+
+\begin{lstlisting}[style=linuxStyle, caption={Creación de un venv en Linux/WSL},escapeinside={(*@}{@*)}]
+# Navegue a la carpeta de su proyecto
+cd ~/(*@\ProjectName@*)
+
+# Cree el entorno
+python3 -m venv ~/penv/(*@\ProjectName@*)
+\end{lstlisting}
+
+En ambos casos, \texttt{C:\textbackslash penv\textbackslash \ProjectName{}} o
+\texttt{\textasciitilde/penv/\ProjectName{}} es donde se almacenará el entorno.
+Mantener todos los entornos en una única carpeta (\texttt{penv} significa
+«Python environments», es decir, «entornos de Python») facilita encontrarlos
+y gestionarlos.
+
+\subsection{Activación de un entorno virtual}
+
+Activar un entorno modifica la sesión actual de su intérprete de comandos
+de modo que \texttt{python} y \texttt{pip} hagan referencia a las copias
+aisladas dentro del venv, y no a las globales.
+
+\subsubsection{Windows}
+
+\begin{lstlisting}[style=windowsStyle, caption={Activación de un venv en Windows},escapeinside={(*@}{@*)}]
+C:\penv\(*@\ProjectName@*)\Scripts\activate.bat
+\end{lstlisting}
+
+Tras la activación, su indicación cambiará para mostrar el nombre del entorno:
+\begin{lstlisting}[style=windowsStyle,escapeinside={(*@}{@*)}]
+((*@\ProjectName@*)) C:\Projects\(*@\ProjectName@*)>
+\end{lstlisting}
+
+\subsubsection{Linux / WSL}
+
+\begin{lstlisting}[style=linuxStyle, caption={Activación de un venv en Linux/WSL},escapeinside={(*@}{@*)}]
+source ~/penv/(*@\ProjectName@*)/bin/activate
+\end{lstlisting}
+
+Tras la activación:
+\begin{lstlisting}[style=linuxStyle,escapeinside={(*@}{@*)}]
+((*@\ProjectName@*)) drg@machine:~/(*@\ProjectName@*)$
+\end{lstlisting}
+
+\begin{warningbox}
+Observe la palabra clave \texttt{source} en el comando de Linux. Esto es
+crítico y se explica en detalle en la Sección~\ref{sec:source-vs-execute}.
+\end{warningbox}
+
+\subsection{Instalación de paquetes}
+
+Una vez que el entorno está activo, use \texttt{pip} para instalar paquetes.
+La sintaxis es idéntica en ambas plataformas:
+
+\begin{lstlisting}[style=inlineStyle, caption={Instalación de paquetes con pip},escapeinside={(*@}{@*)}]
+pip install numpy pandas matplotlib openai langchain
+\end{lstlisting}
+
+Para guardar una lista de todos los paquetes instalados (de modo que usted o
+un colega puedan recrear el entorno más adelante):
+
+\begin{lstlisting}[style=inlineStyle,escapeinside={(*@}{@*)}]
+pip freeze > requirements.txt
+\end{lstlisting}
+
+Para recrear un entorno a partir de dicha lista:
+
+\begin{lstlisting}[style=inlineStyle,escapeinside={(*@}{@*)}]
+pip install -r requirements.txt
+\end{lstlisting}
+
+\subsection{Desactivación}
+
+Para salir del entorno y regresar al intérprete de comandos global (idéntico
+en ambas plataformas):
+
+\begin{lstlisting}[style=inlineStyle,escapeinside={(*@}{@*)}]
+deactivate
+\end{lstlisting}
+
+\subsection{Instalación de las bibliotecas requeridas por \ProjectName{}}
+\label{sec:project-libraries}
+
+Con el entorno de \ProjectName{} activo, instale las bibliotecas necesarias
+para el reto de datos:
+
+\begin{verbatim}
+pip install numpy pandas matplotlib scipy jupyter
+\end{verbatim}
+
+Estas cinco bibliotecas son suficientes para todo el análisis del reto de
+datos. Las bibliotecas adicionales requeridas para el capítulo sobre modelos
+grandes de lenguaje (incluyendo \texttt{openai}, \texttt{anthropic} y
+\texttt{langchain}) se instalan por separado en el
+Capítulo~\ref{ch:ollama-infrastructure}.
+
+\vs
+\noindent
+Para verificar la instalación:
+
+\begin{verbatim}
+python -c "import numpy, pandas, matplotlib, scipy, jupyter; print('OK')"
+\end{verbatim}
+
+\vs
+\noindent
+\textbf{Sabrá que su entorno principal está completamente funcional cuando:}
+\begin{itemize}
+    \item \texttt{python --version} devuelve un número de versión.
+    \item \texttt{code .} abre Visual Studio Code desde una terminal.
+    \item \texttt{git --version} devuelve un número de versión.
+    \item Las cinco bibliotecas requeridas se importan sin errores (véase arriba).
+\end{itemize}
+Los programas agente de modelos grandes de lenguaje (\texttt{agentGroq.py},
+\texttt{agentGPT.py}, \texttt{agentClaude.py}) se encuentran en
+\texttt{resources/unit\_7/FOO/} dentro del repositorio de \ProjectName{}.
+Ejecutarlos requiere claves de API configuradas en el
+Capítulo~\ref{ch:ollama-infrastructure}.
+\vs
+
+% ============================================================
+\section{Gestión moderna de paquetes: \texttt{uv}}
+\label{sec:uv}
+% ============================================================
+
+\subsection{Por qué \texttt{uv} es relevante hoy}
+
+Las herramientas presentadas en la sección anterior (\texttt{python -m venv}
+para la creación de entornos y \texttt{pip} para la instalación de paquetes)
+son la base establecida y estable de la gestión de paquetes de Python. Son
+mantenidas por la Python Packaging Authority (PyPA) bajo el amparo de la
+Python Software Foundation (PSF), una organización sin ánimo de lucro con
+una estructura de gobernanza de largo plazo y sin dependencia comercial.
+Cada instalación de Python incluye \texttt{pip} por defecto, y saber cómo
+usarlo sigue siendo una habilidad esencial independientemente de qué otras
+herramientas adopte.
+
+Ha surgido una herramienta más reciente llamada \texttt{uv} que está ganando
+adopción rápidamente en entornos profesionales. Comprender ambas
+herramientas es importante precisamente porque el panorama está en
+transición.
+
+\begin{infobox}
+\textbf{Una nota sobre la gobernanza.} \texttt{pip} es mantenido por la
+Python Packaging Authority bajo la Python Software Foundation, una
+organización sin ánimo de lucro con un modelo de gobernanza comunitaria y
+sin dependencia comercial. \texttt{uv} es una herramienta de código abierto
+desarrollada y mantenida por Astral, una empresa comercial financiada con
+capital de riesgo. Astral ha sido un excelente administrador de la
+herramienta y ha contribuido de manera significativa al ecosistema más
+amplio de empaquetado de Python. No obstante, su trayectoria a largo plazo
+depende de los resultados del negocio de una manera en que los proyectos
+respaldados por fundaciones no dependen. Hasta que el ecosistema se
+estabilice en torno a un estándar comunitario claro, conocer tanto
+\texttt{pip} como \texttt{uv} es la postura profesional prudente.
+\end{infobox}
+
+\subsection{Qué ofrece \texttt{uv}}
+
+\texttt{uv} es un reemplazo directo para \texttt{pip} y
+\texttt{python -m venv}, reescrito en Rust por motivos de rendimiento. Sus
+principales ventajas sobre la cadena de herramientas tradicional son:
+
+\begin{itemize}
+  \item \textbf{Velocidad.} La resolución e instalación de paquetes son
+        de 10 a 100 veces más rápidas que \texttt{pip} debido a una
+        implementación en Rust y a una descarga paralela agresiva.
+  \item \textbf{Una caché central.} Los paquetes descargados se almacenan
+        una sola vez en una caché global y se reutilizan entre entornos.
+        En el mismo sistema de archivos, \texttt{uv} usa enlaces físicos
+        (hardlinks) de modo que múltiples entornos que comparten un
+        paquete no consumen espacio de disco adicional más allá de la
+        primera copia.
+  \item \textbf{Archivos de bloqueo.} \texttt{uv} produce un archivo
+        \texttt{uv.lock} que registra el grafo completo y resuelto de
+        dependencias con hashes criptográficos. Esta es una mejora
+        significativa respecto a \texttt{pip freeze > requirements.txt},
+        que solo registra nombres y versiones de los paquetes instalados
+        sin distinguir dependencias directas de las transitivas, y sin
+        verificación por hash.
+  \item \textbf{Integración con \texttt{pyproject.toml}.} \texttt{uv}
+        trabaja de forma nativa con \texttt{pyproject.toml}, el estándar
+        moderno para declarar dependencias de un proyecto, reemplazando
+        el flujo de trabajo más antiguo basado en \texttt{requirements.txt}.
+  \item \textbf{Gestión de versiones de Python.} \texttt{uv} puede
+        descargar y gestionar múltiples versiones de Python de forma
+        independiente, eliminando la necesidad de herramientas separadas
+        como \texttt{pyenv}.
+\end{itemize}
+
+\subsection{Instalación de \texttt{uv}}
+
+\subsubsection{Windows (PowerShell)}
+
+\begin{lstlisting}[style=windowsStyle, caption={Instalación de \texttt{uv} en Windows},escapeinside={(*@}{@*)}]
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+\end{lstlisting}
+
+\texttt{uv} se instala en
+\texttt{\%USERPROFILE\%\textbackslash.local\textbackslash bin} y se añade
+automáticamente al \texttt{PATH} de su usuario. Cierre y reabra su terminal,
+y luego verifique:
+
+\begin{lstlisting}[style=windowsStyle,escapeinside={(*@}{@*)}]
+uv --version
+\end{lstlisting}
+
+\subsubsection{Linux / WSL}
+
+\begin{lstlisting}[style=linuxStyle, caption={Instalación de \texttt{uv} en Linux/WSL},escapeinside={(*@}{@*)}]
+curl -LsSf https://astral.sh/uv/install.sh | sh
+\end{lstlisting}
+
+\texttt{uv} se instala en \texttt{\textasciitilde/.local/bin}. Recargue la
+configuración de su intérprete de comandos y verifique:
+
+\begin{lstlisting}[style=linuxStyle,escapeinside={(*@}{@*)}]
+source ~/.bashrc
+uv --version
+\end{lstlisting}
+
+\subsection{Creación y gestión de entornos con \texttt{uv}}
+
+La estructura de entorno producida por \texttt{uv venv} es idéntica a la de
+un entorno estándar creado con \texttt{python -m venv}. Se encuentran
+presentes los mismos scripts \texttt{Scripts\textbackslash activate.bat}
+(Windows) y \texttt{bin/activate} (Linux), y la activación no cambia.
+
+\subsubsection{Creación de un entorno}
+
+\begin{lstlisting}[style=windowsStyle, caption={Creación de un entorno gestionado por uv (Windows)},escapeinside={(*@}{@*)}]
+uv venv C:\uvenv\(*@\ProjectName@*) --python 3.12
+\end{lstlisting}
+
+\begin{lstlisting}[style=linuxStyle, caption={Creación de un entorno gestionado por uv (Linux/WSL)},escapeinside={(*@}{@*)}]
+uv venv ~/uvenv/(*@\ProjectName@*) --python 3.12
+\end{lstlisting}
+
+La bandera \texttt{--python} especifica la versión de Python. Si esa versión
+no está ya instalada, \texttt{uv} la descargará e instalará automáticamente.
+
+\subsubsection{Activación de un entorno}
+
+La activación es idéntica a la de un venv estándar:
+
+\begin{lstlisting}[style=windowsStyle,escapeinside={(*@}{@*)}]
+C:\uvenv\(*@\ProjectName@*)\Scripts\activate.bat
+\end{lstlisting}
+
+\begin{lstlisting}[style=linuxStyle,escapeinside={(*@}{@*)}]
+source ~/uvenv/(*@\ProjectName@*)/bin/activate
+\end{lstlisting}
+
+\subsubsection{Instalación de paquetes}
+
+Dentro de un entorno activado, \texttt{uv pip install} reemplaza a
+\texttt{pip install}:
+
+\begin{lstlisting}[style=inlineStyle, caption={Instalación de paquetes con uv},escapeinside={(*@}{@*)}]
+uv pip install numpy pandas matplotlib
+\end{lstlisting}
+
+\subsubsection{Declaración de dependencias con \texttt{pyproject.toml}}
+
+Para proyectos que se compartirán o reproducirán, \texttt{uv} funciona mejor
+con un archivo \texttt{pyproject.toml} en la raíz del proyecto que declare
+las dependencias de forma explícita:
+
+\begin{lstlisting}[style=inlineStyle, caption={\texttt{pyproject.toml} mínimo},escapeinside={(*@}{@*)}]
+[project]
+name = "my-project"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "numpy>=1.26",
+    "pandas>=2.2",
+    "matplotlib>=3.9",
+]
+\end{lstlisting}
+
+Con este archivo presente, un único comando instala todas las dependencias
+y genera el archivo de bloqueo:
+
+\begin{lstlisting}[style=inlineStyle,escapeinside={(*@}{@*)}]
+uv sync
+\end{lstlisting}
+
+\texttt{uv sync} lee \texttt{pyproject.toml}, resuelve el grafo completo de
+dependencias, instala todos los paquetes y escribe \texttt{uv.lock}.
+Ejecutar \texttt{uv sync} nuevamente en otra máquina, o después de un
+\texttt{git pull} que haya añadido nuevas dependencias, reproduce el
+entorno de forma exacta.
+
+\begin{infobox}
+Haga commit de \texttt{pyproject.toml} y \texttt{uv.lock} en su repositorio.
+No haga commit de la carpeta del entorno en sí. Añádala a
+\texttt{.gitignore}.
+\end{infobox}
+
+\newpage
+\subsection{\texttt{requirements.txt} frente a \texttt{uv.lock}}
+
+\begin{table}[h]
+\centering
+\caption{Comparación entre \texttt{requirements.txt} y \texttt{uv.lock}}
+\label{tab:req-vs-lock}
+\begin{tabular}{@{}p{0.28\textwidth}p{0.30\textwidth}p{0.30\textwidth}@{}}
+\toprule
+\textbf{Propiedad} & \textbf{\texttt{requirements.txt}} & \textbf{\texttt{uv.lock}} \\
+\midrule
+Generado por
+  & \texttt{pip freeze}
+  & \texttt{uv sync} / \texttt{uv lock} \\[4pt]
+Registra
+  & Solo paquetes instalados
+  & Grafo completo de dependencias \\[4pt]
+Distingue dependencias directas y transitivas
+  & No
+  & Sí \\[4pt]
+Verificación por hash
+  & No
+  & Sí \\[4pt]
+Reproducibilidad entre plataformas
+  & Parcial
+  & Sí \\[4pt]
+Debe incluirse en git
+  & Sí
+  & Sí \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ============================================================
+\section{Nivel 1: archivos de script}
+\label{sec:level1}
+% ============================================================
+
+Ahora que comprendemos los entornos virtuales, podemos escribir scripts para
+activarlos automáticamente. El objetivo es crear dos scripts:
+
+\begin{enumerate}
+  \item \textbf{\texttt{ActivateEnv}}: un script reutilizable que acepta
+        dos parámetros (nombre del entorno y directorio del proyecto),
+        activa el entorno y abre VS Code.
+  \item \textbf{\texttt{\ProjectName}}: un script específico del proyecto,
+        de una sola línea, que invoca a \texttt{ActivateEnv} con los
+        parámetros correctos para el proyecto \ProjectName{}.
+\end{enumerate}
+
+\subsection{La solución de Windows: archivos por lotes}
+
+\subsubsection{ActivateEnv.bat}
+
+La versión de Windows, \texttt{ActivateEnv.bat}, se almacena en
+\texttt{C:\textbackslash penv} y se coloca en el \texttt{PATH} del sistema.
+Acepta dos parámetros: \texttt{\%1} (nombre del entorno) y \texttt{\%2}
+(directorio del proyecto).
+
+\begin{lstlisting}[style=windowsStyle, basicstyle=\footnotesize\ttfamily, caption={\texttt{ActivateEnv.bat}: lanzador de entorno reutilizable (Windows)},escapeinside={(*@}{@*)}]
+@echo off
+setlocal
+
+:: Lea los parámetros
+set "ENV_NAME=%~1"
+set "BASE_DIR=%~2"
+echo Iniciando la activación del entorno '\%ENV_NAME%'...
+
+:: Valide la entrada
+if "%ENV_NAME%"=="" (
+    echo [ERROR] No se especificó el nombre del entorno.
+    goto :eof
+)
+if "%BASE_DIR%"=="" (
+    echo [ERROR] No se especificó el directorio base.
+    goto :eof
+)
+
+:: Verifique si existe el directorio base
+if not exist "%BASE_DIR%" (
+    echo [ERROR] Directorio no encontrado: %BASE_DIR%
+    goto :eof
+)
+
+:: Cambie al directorio de trabajo
+cd /d "%BASE_DIR%"
+
+:: Defina la ruta del script de activación
+set "VENV_ROOT=C:\penv"
+set "VENV_ACTIVATE=%VENV_ROOT%\%ENV_NAME%\Scripts\activate.bat"
+
+:: Active el entorno
+if exist "%VENV_ACTIVATE%" (
+    echo Activando...
+    call "%VENV_ACTIVATE%"
+    echo Activación completa.
+) else (
+    echo [ERROR] No encontrado: %VENV_ACTIVATE%
+    goto :eof
+)
+
+:: Abra VS Code en el directorio del proyecto
+echo Iniciando VS Code...
+code .
+
+endlocal
+\end{lstlisting}
+
+
+Elementos clave específicos de Windows:
+\begin{itemize}
+  \item \texttt{@echo off} suprime el eco de cada comando en la pantalla.
+  \item \texttt{setlocal} asegura que los cambios de variables sean locales
+        a este script.
+  \item \texttt{\%\textasciitilde1} elimina las comillas que rodean al
+        primer argumento.
+  \item \texttt{call} se usa para invocar otro archivo por lotes y devolver
+        el control después.
+  \item \texttt{goto :eof} salta al final del archivo (una salida limpia).
+\end{itemize}
+
+\subsubsection{\ProjectName{}.bat}
+
+Este archivo reside en el directorio del proyecto \ProjectName{}. Simplemente
+invoca a \texttt{ActivateEnv.bat} con los argumentos correctos:
+
+\begin{lstlisting}[style=windowsStyle, caption={\texttt{\ProjectName{}.bat}: lanzador del proyecto (Windows)},escapeinside={(*@}{@*)}]
+ActivateEnv (*@\ProjectName@*) "C:\Projects\(*@\ProjectName@*)"
+\end{lstlisting}
+
+Debido a que \texttt{C:\textbackslash penv} está en el \texttt{PATH} del
+sistema, Windows encuentra \texttt{ActivateEnv.bat} automáticamente. Puede
+ejecutar \texttt{\ProjectName{}.bat} haciendo doble clic en él o escribiendo
+\texttt{\ProjectName{}} en cualquier ventana de CMD.
+
+\subsection{La solución de Linux: scripts de intérprete de comandos}
+\label{subsec:linux-scripts}
+
+\subsubsection{Comprensión de la sintaxis de los scripts de intérprete de comandos}
+
+Un script de intérprete de comandos de Linux es un archivo de texto plano que
+contiene comandos de Bash. Cada script debe comenzar con una \textbf{línea
+shebang}, una primera línea especial que indica al sistema qué intérprete
+usar:
+
+\begin{lstlisting}[style=linuxStyle,escapeinside={(*@}{@*)}]
+#!/bin/bash
+\end{lstlisting}
+
+Los parámetros pasados a un script se acceden como \texttt{\$1}, \texttt{\$2},
+\texttt{\$3}, etc. El nombre propio del script es \texttt{\$0}.
+
+\subsubsection{ActivateEnv.sh}
+
+\begin{lstlisting}[style=linuxStyle, basicstyle=\footnotesize\ttfamily, caption={\texttt{ActivateEnv.sh}: lanzador de entorno reutilizable (Linux/WSL)},escapeinside={(*@}{@*)}]
+#!/bin/bash
+# ActivateEnv.sh
+# Uso: source ~/penv/ActivateEnv.sh <ENV_NAME> <PROJECT_DIR>
+# Nota: Debe ser *cargado con source*, no ejecutado. Véase la explicación abajo.
+
+ENV_NAME="$1"
+BASE_DIR="$2"
+
+echo "Iniciando la activación del entorno '${ENV_NAME}'..."
+
+# Valide la entrada
+if [ -z "$ENV_NAME" ]; then
+    echo "[ERROR] No se especificó el nombre del entorno."
+    return 1
+fi
+
+if [ -z "$BASE_DIR" ]; then
+    echo "[ERROR] No se especificó el directorio base."
+    return 1
+fi
+
+# Verifique si existe el directorio del proyecto
+if [ ! -d "$BASE_DIR" ]; then
+    echo "[ERROR] Directorio no encontrado: ${BASE_DIR}"
+    return 1
+fi
+
+# Cambie al directorio del proyecto
+cd "$BASE_DIR" || return 1
+
+# Construya la ruta al script de activación
+VENV_ROOT="$HOME/penv"
+VENV_ACTIVATE="${VENV_ROOT}/${ENV_NAME}/bin/activate"
+
+# Active el entorno
+if [ -f "$VENV_ACTIVATE" ]; then
+    echo "Activando..."
+    # shellcheck source=/dev/null
+    source "$VENV_ACTIVATE"
+    echo "Activación completa."
+else
+    echo "[ERROR] No encontrado: ${VENV_ACTIVATE}"
+    return 1
+fi
+
+# Abra VS Code en el directorio del proyecto (con soporte para WSL)
+echo "Iniciando VS Code..."
+code .
+\end{lstlisting}
+
+Observe varias diferencias respecto de la versión de Windows:
+\begin{itemize}
+  \item \texttt{-z} comprueba si una cadena está vacía (longitud cero).
+  \item \texttt{-d} comprueba si una ruta es un directorio.
+  \item \texttt{-f} comprueba si una ruta es un archivo regular.
+  \item \texttt{\$HOME} es el equivalente en Linux de
+        \texttt{\%USERPROFILE\%}: se expande a su directorio de inicio.
+  \item \texttt{return 1} sale del script con un código de error (usamos
+        \texttt{return} en lugar de \texttt{exit} por una razón explicada
+        en la siguiente sección).
+\end{itemize}
+
+\subsubsection{\ProjectName{}.sh}
+
+\begin{lstlisting}[style=linuxStyle, caption={\texttt{\ProjectName.sh}: lanzador del proyecto (Linux/WSL)},escapeinside={(*@}{@*)}]
+#!/bin/bash
+# (*@\ProjectName@*).sh
+# Uso: source ~/(*@\ProjectName@*)/(*@\ProjectName@*).sh
+# Inicia el entorno del proyecto (*@\ProjectName@*).
+
+source ~/penv/ActivateEnv.sh (*@\ProjectName@*) "$HOME/(*@\ProjectName@*)"
+\end{lstlisting}
+
+\subsection{Hacer ejecutable un script}
+\label{sec:chmod}
+
+En Linux, crear un archivo no lo convierte automáticamente en ejecutable.
+Debe conceder permiso de ejecución con el comando \texttt{chmod}:
+
+\begin{lstlisting}[style=linuxStyle,escapeinside={(*@}{@*)}]
+chmod +x ~/penv/ActivateEnv.sh
+chmod +x ~/(*@\ProjectName@*)/(*@\ProjectName@*).sh
+\end{lstlisting}
+
+\texttt{chmod} significa \emph{cambiar el modo} (change mode). La bandera
+\texttt{+x} añade el permiso de ejecución (\texttt{x}). Los permisos de
+Linux se organizan en torno a tres roles (propietario, grupo y otros),
+pero para scripts personales, \texttt{chmod +x} es casi siempre todo lo
+que necesita.
+
+\subsection{Añadir sus scripts al PATH}
+
+En Windows, añadió \texttt{C:\textbackslash penv} al \texttt{PATH} del
+sistema para que \texttt{ActivateEnv.bat} pudiera encontrarse desde
+cualquier ubicación. En Linux, hace lo mismo editando el archivo de
+configuración de su intérprete de comandos.
+
+\begin{lstlisting}[style=linuxStyle, caption={Añadir \textasciitilde/penv al PATH en \textasciitilde/.bashrc},escapeinside={(*@}{@*)}]
+# Abra su archivo bashrc en un editor de texto
+nano ~/.bashrc
+
+# Añada esta línea al final:
+export PATH="$HOME/penv:$PATH"
+
+# Guarde y recargue la configuración
+source ~/.bashrc
+\end{lstlisting}
+
+Después de esto, el intérprete de comandos puede encontrar
+\texttt{ActivateEnv.sh} desde cualquier directorio.
+
+% ------------------------------------------------------------
+\subsection{El enfoque con \texttt{uv}: \texttt{ActivateUVEnv}}
+\label{subsec:activateuvenv}
+% ------------------------------------------------------------
+
+Los siguientes scripts reflejan a \texttt{ActivateEnv}, pero están dirigidos
+a entornos gestionados por \texttt{uv} almacenados en
+\texttt{C:\textbackslash uvenv} (Windows) o
+\texttt{\textasciitilde/uvenv} (Linux). Almacene todos los entornos de
+\texttt{uv} en \texttt{uvenv} en lugar de en \texttt{penv} para mantener
+las dos cadenas de herramientas visualmente distintas en el disco.
+
+Dos comportamientos distinguen a \texttt{ActivateUVEnv} de su contraparte
+basada en \texttt{pip}:
+
+\begin{enumerate}
+  \item \textbf{Creación automática.} Si el entorno con el nombre indicado
+        no existe todavía, \texttt{uv venv} lo crea antes de la activación.
+        No hay un paso de configuración separado para proyectos nuevos.
+  \item \textbf{Sincronización automática.} Si hay un \texttt{pyproject.toml}
+        presente en el directorio del proyecto, \texttt{uv sync} se ejecuta
+        después de la activación. Las dependencias se instalan por sí
+        mismas después de cada \texttt{git pull} que añada nuevos
+        requisitos, por lo que no se necesita ningún \texttt{pip install}
+        manual.
+\end{enumerate}
+
+\subsubsection{ActivateUVEnv.bat (Windows)}
+
+Almacene este archivo en \texttt{C:\textbackslash uvenv} y añada esa
+carpeta al \texttt{PATH} del sistema.
+
+\begin{lstlisting}[style=windowsStyle, basicstyle=\footnotesize\ttfamily, caption={\texttt{ActivateUVEnv.bat}: lanzador de entorno uv (Windows)},escapeinside={(*@}{@*)}]
+@echo off
+setlocal
+
+set "ENV_NAME=%~1"
+set "BASE_DIR=%~2"
+set "VENV_ROOT=C:\uvenv"
+set "VENV_PATH=%VENV_ROOT%\%ENV_NAME%"
+set "VENV_ACTIVATE=%VENV_PATH%\Scripts\activate.bat"
+
+:: Valide las entradas
+if "%ENV_NAME%"=="" (
+    echo [ERROR] Uso: ActivateUVEnv ^<env-name^> ^<project-dir^>
+    goto :eof
+)
+if "%BASE_DIR%"=="" (
+    echo [ERROR] Uso: ActivateUVEnv ^<env-name^> ^<project-dir^>
+    goto :eof
+)
+if not exist "%BASE_DIR%" (
+    echo [ERROR] Directorio del proyecto no encontrado: %BASE_DIR%
+    goto :eof
+)
+
+:: Cree el entorno si aún no existe
+if not exist "%VENV_ACTIVATE%" (
+    echo [INFO] Entorno '%ENV_NAME%' no encontrado. Creándolo con uv...
+    uv venv "%VENV_PATH%" --python 3.12
+    if errorlevel 1 (
+        echo [ERROR] No se pudo crear el entorno.
+        goto :eof
+    )
+)
+
+:: Active
+cd /d "%BASE_DIR%"
+call "%VENV_ACTIVATE%"
+
+:: Sincronice las dependencias si está presente pyproject.toml
+if exist "pyproject.toml" (
+    echo [INFO] pyproject.toml encontrado. Sincronizando dependencias...
+    uv sync
+)
+
+echo.
+echo [OK] Entorno '%ENV_NAME%' activo.
+echo Iniciando VS Code...
+code .
+
+endlocal
+\end{lstlisting}
+
+El uso es idéntico en forma al de \texttt{ActivateEnv.bat}:
+
+\begin{lstlisting}[style=windowsStyle,escapeinside={(*@}{@*)}]
+ActivateUVEnv lunar "C:\Dropbox\Research\Lunar\python"
+ActivateUVEnv forecasting "C:\Projects\forecasting"
+\end{lstlisting}
+
+\subsubsection{ActivateUVEnv: función de intérprete de comandos para Linux / WSL}
+
+Añada la siguiente función a \texttt{\textasciitilde/.bashrc}. Al igual que
+su contraparte basada en \texttt{pip}, se ejecuta en el intérprete de
+comandos actual, de modo que la activación y los cambios de directorio
+persisten en su sesión.
+
+\begin{lstlisting}[style=linuxStyle, basicstyle=\footnotesize\ttfamily, caption={Función de intérprete de comandos \texttt{ActivateUVEnv()} para \textasciitilde/.bashrc},escapeinside={(*@}{@*)}]
+# -------------------------------------------------------
+# ActivateUVEnv: Activa un venv gestionado por uv y abre VS Code
+# Uso: ActivateUVEnv <ENV_NAME> <PROJECT_DIR>
+# -------------------------------------------------------
+ActivateUVEnv() {
+    local ENV_NAME="$1"
+    local BASE_DIR="$2"
+    local VENV_ROOT="$HOME/uvenv"
+    local VENV_PATH="${VENV_ROOT}/${ENV_NAME}"
+    local VENV_ACTIVATE="${VENV_PATH}/bin/activate"
+
+    if [ -z "$ENV_NAME" ]; then
+        echo "[ERROR] Uso: ActivateUVEnv <env-name> <project-dir>"
+        return 1
+    fi
+
+    if [ -z "$BASE_DIR" ]; then
+        echo "[ERROR] Uso: ActivateUVEnv <env-name> <project-dir>"
+        return 1
+    fi
+
+    if [ ! -d "$BASE_DIR" ]; then
+        echo "[ERROR] Directorio del proyecto no encontrado: ${BASE_DIR}"
+        return 1
+    fi
+
+    # Cree el entorno si aún no existe
+    if [ ! -f "$VENV_ACTIVATE" ]; then
+        echo "[INFO] Entorno '${ENV_NAME}' no encontrado. Creándolo con uv..."
+        uv venv "$VENV_PATH" --python 3.12 || return 1
+    fi
+
+    # Active
+    cd "$BASE_DIR" || return 1
+    # shellcheck source=/dev/null
+    source "$VENV_ACTIVATE"
+
+    # Sincronice las dependencias si está presente pyproject.toml
+    if [ -f "pyproject.toml" ]; then
+        echo "[INFO] pyproject.toml encontrado. Sincronizando dependencias..."
+        uv sync
+    fi
+
+    echo "[OK] Entorno '${ENV_NAME}' activo."
+    echo "Iniciando VS Code..."
+    code .
+}
+\end{lstlisting}
+
+Recargue \texttt{.bashrc} después de guardar:
+
+\begin{lstlisting}[style=linuxStyle,escapeinside={(*@}{@*)}]
+source ~/.bashrc
+\end{lstlisting}
+
+Luego invóquela desde cualquier directorio:
+
+\begin{lstlisting}[style=linuxStyle,escapeinside={(*@}{@*)}]
+ActivateUVEnv lunar "$HOME/Research/Lunar/python"
+\end{lstlisting}
+
+% ============================================================
+\section{La diferencia crítica: ejecutar frente a cargar con source}
+\label{sec:source-vs-execute}
+% ============================================================
+
+Esta sección explica uno de los conceptos más importantes, y a la vez más
+incomprendidos, de los scripts de intérprete de comandos de Linux,
+especialmente para desarrolladores que vienen de Windows.
+
+\subsection{Intérpretes de comandos hijos}
+
+Cada vez que usted ejecuta un script con \texttt{./script.sh} o simplemente
+con \texttt{script.sh}, Linux lanza un \textbf{intérprete de comandos hijo}:
+un proceso de intérprete de comandos nuevo y separado que hereda una copia
+de su entorno, ejecuta el script y después \emph{termina}. Cualquier cambio
+que el script realice en el entorno (activar un venv, cambiar de
+directorio, establecer una variable) existe únicamente en ese intérprete
+hijo. Cuando el hijo termina, esos cambios desaparecen. Su terminal
+original no se ve afectado en absoluto.
+
+Por eso ejecutar \texttt{./ActivateEnv.sh} parecería no hacer nada útil:
+el venv se activa dentro del hijo, luego el hijo termina, y su terminal
+sigue apuntando al Python global.
+
+\subsection{Cargar con source: ejecución en el intérprete de comandos actual}
+
+El comando \texttt{source} (o su abreviatura, un único punto \texttt{.})
+ejecuta un script \emph{en el intérprete de comandos actual}: no se crea
+ningún hijo. Cada comando se ejecuta como si lo hubiera escrito
+directamente en la indicación. Esto significa:
+
+\begin{itemize}
+  \item \texttt{source ~/penv/\ProjectName{}/bin/activate} activa el venv
+        en \emph{su} terminal.
+  \item \texttt{cd} cambia \emph{su} directorio de trabajo.
+  \item Las variables establecidas por el script persisten en \emph{su} sesión.
+\end{itemize}
+
+\begin{lstlisting}[style=linuxStyle,escapeinside={(*@}{@*)}]
+# Estos dos son equivalentes:
+source ActivateEnv.sh (*@\ProjectName@*) ~/(*@\ProjectName@*)
+. ActivateEnv.sh (*@\ProjectName@*) ~/(*@\ProjectName@*)
+
+# Esto NO funciona para la activación del venv:
+./ActivateEnv.sh (*@\ProjectName@*) ~/(*@\ProjectName@*)    # intérprete hijo; los cambios se pierden
+\end{lstlisting}
+
+\subsection{El paralelo en Windows}
+
+Windows no tiene exactamente esta distinción de la misma manera. El comando
+\texttt{call} en un archivo por lotes ejecuta otro \texttt{.bat} en la
+misma sesión de CMD y regresa, razón por la cual la versión de Windows
+funciona como se espera. El comportamiento por defecto de Linux de generar
+un proceso hijo es en realidad el diseño \emph{más seguro}, ya que evita
+que los scripts modifiquen accidentalmente su entorno, pero le exige optar
+explícitamente por el comportamiento de sesión compartida mediante
+\texttt{source}.
+
+\begin{notebox}
+Esta es también la razón por la que \texttt{ActivateEnv.sh} usa
+\texttt{return} en lugar de \texttt{exit} para el manejo de errores.
+Cuando un script se carga con source, \texttt{exit} cerraría toda su
+terminal. \texttt{return} sale únicamente del script, dejando su sesión
+intacta.
+\end{notebox}
+
+% ============================================================
+\section{Nivel 2: funciones de intérprete de comandos, el enfoque elegante de Linux}
+\label{sec:level2}
+% ============================================================
+
+Cargar scripts con source es poderoso, pero requiere escribir \texttt{source}
+o \texttt{.} cada vez. También implica que su script lanzador debe residir
+en algún lugar del \texttt{PATH} y que el usuario debe recordar la
+invocación exacta. Linux ofrece una solución más elegante: las
+\textbf{funciones de intérprete de comandos}.
+
+\subsection{¿Qué es una función de intérprete de comandos?}
+
+Una función de intérprete de comandos es como un script, pero se define
+directamente dentro de su archivo de configuración del intérprete de
+comandos (\texttt{\textasciitilde/.bashrc}). Debido a que forma parte del
+propio intérprete (y no es un archivo separado), se ejecuta automáticamente
+en la sesión actual sin necesidad de \texttt{source}. Usted la invoca
+simplemente escribiendo su nombre.
+
+\subsection{Definición de la función ActivateEnv}
+
+Añada lo siguiente al final de \texttt{\textasciitilde/.bashrc}:
+
+\begin{lstlisting}[style=linuxStyle, basicstyle=\footnotesize\ttfamily, caption={Versión como función de intérprete de comandos de \texttt{ActivateEnv} en \textasciitilde/.bashrc},escapeinside={(*@}{@*)}]
+# -------------------------------------------------------
+# ActivateEnv: Activa un venv de Python y abre VS Code
+# Uso: ActivateEnv <ENV_NAME> <PROJECT_DIR>
+# -------------------------------------------------------
+ActivateEnv() {
+    local ENV_NAME="$1"
+    local BASE_DIR="$2"
+
+    echo "Iniciando la activación del entorno '${ENV_NAME}'..."
+
+    # Valide la entrada
+    if [ -z "$ENV_NAME" ]; then
+        echo "[ERROR] No se especificó el nombre del entorno."
+        return 1
+    fi
+
+    if [ -z "$BASE_DIR" ]; then
+        echo "[ERROR] No se especificó el directorio base."
+        return 1
+    fi
+
+    if [ ! -d "$BASE_DIR" ]; then
+        echo "[ERROR] Directorio no encontrado: ${BASE_DIR}"
+        return 1
+    fi
+
+    local VENV_ACTIVATE="$HOME/penv/${ENV_NAME}/bin/activate"
+
+    if [ ! -f "$VENV_ACTIVATE" ]; then
+        echo "[ERROR] Entorno virtual no encontrado: ${VENV_ACTIVATE}"
+        return 1
+    fi
+
+    # Cambie de directorio, active y abra VS Code
+    cd "$BASE_DIR" || return 1
+    source "$VENV_ACTIVATE"
+    echo "Entorno '${ENV_NAME}' activado."
+    code .
+}
+\end{lstlisting}
+
+La palabra clave \texttt{local} restringe las variables al ámbito de la
+función, de modo que no contaminan la sesión del intérprete de comandos.
+
+\subsection{Definición de la función \ProjectName{}}
+
+Ahora añada una función de una línea que invoque a \texttt{ActivateEnv}
+para el proyecto \ProjectName{}:
+
+\begin{lstlisting}[style=linuxStyle, caption={Función específica del proyecto para \ProjectName{} en \textasciitilde/.bashrc},escapeinside={(*@}{@*)}]
+# -------------------------------------------------------
+# (*@\ProjectName@*): Inicia el entorno del proyecto (*@\ProjectName@*)
+# Uso: (*@\ProjectName@*)
+# -------------------------------------------------------
+(*@\ProjectName@*)() {
+    ActivateEnv "(*@\ProjectName@*)" "$HOME/(*@\ProjectName@*)"
+}
+\end{lstlisting}
+
+\subsection{Activación de las nuevas funciones}
+
+Después de editar \texttt{\textasciitilde/.bashrc}, recárguelo:
+
+\begin{lstlisting}[style=linuxStyle,escapeinside={(*@}{@*)}]
+source ~/.bashrc
+\end{lstlisting}
+
+Ahora, desde \emph{cualquier directorio}, simplemente escriba:
+
+\begin{lstlisting}[style=linuxStyle,escapeinside={(*@}{@*)}]
+(*@\ProjectName@*)
+\end{lstlisting}
+
+El intérprete de comandos cambiará al directorio de su proyecto \ProjectName{},
+activará el entorno virtual y abrirá VS Code, todo en una sola palabra y
+sin que se requiera el prefijo \texttt{source}.
+
+\subsection{Por qué Windows no tiene un equivalente limpio}
+
+Los archivos por lotes de Windows siempre se ejecutan como procesos hijos;
+no existe el comando \texttt{source} en CMD. PowerShell es lo más cercano:
+puede definir funciones en su perfil de PowerShell (\texttt{\$PROFILE}) y
+se comportan de manera similar a las funciones de Bash. Sin embargo, el
+perfil de PowerShell está deshabilitado por defecto por razones de
+seguridad y requiere cambiar la política de ejecución. Para los usuarios
+de Windows que desean esta experiencia de un solo comando de forma nativa,
+configurar los perfiles de PowerShell es el camino a seguir, pero implica
+más sobrecarga administrativa que editar
+\texttt{\textasciitilde/.bashrc}. Esta es una de las razones prácticas
+por las que muchos desarrolladores en Windows adoptan WSL.
+
+% ============================================================
+\section{Juntando todas las piezas}
+\label{sec:together}
+% ============================================================
+
+La Figura~\ref{fig:workflow} resume el flujo de trabajo completo en cada
+plataforma.
+
+\begin{table}[h]
+\centering
+\caption{Comparación completa del flujo de trabajo: Windows frente a Linux/WSL}
+\label{fig:workflow}
+\begin{tabular}{@{}p{0.15\textwidth}p{0.38\textwidth}p{0.38\textwidth}@{}}
+\toprule
+\textbf{Paso} & \textbf{Windows} & \textbf{Linux / WSL} \\
+\midrule
+Crear venv
+  & \texttt{python -m venv C:\textbackslash penv\textbackslash \ProjectName}
+  & \texttt{python3 -m venv \textasciitilde/penv/\ProjectName} \\[4pt]
+Lanzador reutilizable
+  & \texttt{ActivateEnv.bat} en \texttt{C:\textbackslash penv}
+  & Función \texttt{ActivateEnv()} en \texttt{\textasciitilde/.bashrc} \\[4pt]
+Lanzador de proyecto
+  & \texttt{\ProjectName{}.bat} en la carpeta del proyecto
+  & Función \texttt{\ProjectName{}()} en \texttt{\textasciitilde/.bashrc} \\[4pt]
+Hacerlo disponible globalmente
+  & Añadir \texttt{C:\textbackslash penv} al PATH del sistema
+  & Las funciones en \texttt{.bashrc} siempre están disponibles \\[4pt]
+Iniciar el proyecto
+  & Escribir \texttt{\ProjectName{}} en cualquier ventana de CMD
+  & Escribir \texttt{\ProjectName{}} en cualquier terminal \\[4pt]
+Resultado
+  & venv activo, VS Code abre en la carpeta del proyecto
+  & venv activo, VS Code abre en la carpeta del proyecto (modo WSL) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{La experiencia completa en WSL}
+
+Cuando usted escribe \texttt{\ProjectName{}} en su terminal de WSL:
+
+\begin{enumerate}
+  \item Bash busca \texttt{\ProjectName{}} en su lista de funciones conocidas.
+  \item \texttt{\ProjectName{}()} invoca a \texttt{ActivateEnv "\ProjectName{}" "\$HOME/\ProjectName{}"}.
+  \item \texttt{ActivateEnv()} cambia al directorio del proyecto.
+  \item El entorno virtual se activa en su intérprete de comandos actual.
+  \item \texttt{code .} inicia VS Code con la extensión de WSL, conectando
+        su interfaz de VS Code en Windows con su backend de Linux.
+  \item Ahora está trabajando en un entorno de desarrollo completamente
+        configurado con una sola palabra.
+\end{enumerate}
+
+% ============================================================
+\section{Hoja de referencia rápida}
+\label{sec:cheatsheet}
+% ============================================================
+
+\begin{table}[h]
+\centering
+\caption{Hoja de referencia de scripts de intérprete de comandos y entornos virtuales}
+\label{tab:cheatsheet}
+\begin{tabular}{@{}p{0.35\textwidth}p{0.28\textwidth}p{0.28\textwidth}@{}}
+\toprule
+\textbf{Tarea} & \textbf{Windows (CMD)} & \textbf{Linux / WSL (Bash)} \\
+\midrule
+Crear entorno virtual
+  & \texttt{python -m venv C:\textbackslash penv\textbackslash NAME}
+  & \texttt{python3 -m venv \textasciitilde/penv/NAME} \\[4pt]
+Activar entorno
+  & \texttt{C:\textbackslash penv\textbackslash NAME\textbackslash Scripts\textbackslash activate}
+  & \texttt{source \textasciitilde/penv/NAME/bin/activate} \\[4pt]
+Desactivar entorno
+  & \texttt{deactivate}
+  & \texttt{deactivate} \\[4pt]
+Instalar un paquete
+  & \texttt{pip install pkg}
+  & \texttt{pip install pkg} \\[4pt]
+Guardar lista de paquetes
+  & \texttt{pip freeze > req.txt}
+  & \texttt{pip freeze > req.txt} \\[4pt]
+Restaurar desde la lista
+  & \texttt{pip install -r req.txt}
+  & \texttt{pip install -r req.txt} \\[4pt]
+Hacer ejecutable un script
+  & (no es necesario; la extensión lo gestiona)
+  & \texttt{chmod +x script.sh} \\[4pt]
+Ejecutar un script
+  & \texttt{script.bat}
+  & \texttt{./script.sh} \\[4pt]
+Cargar con source un script
+  & \texttt{call script.bat}
+  & \texttt{source script.sh} \\[4pt]
+Editar configuración del intérprete
+  & (sin equivalente en CMD)
+  & \texttt{nano \textasciitilde/.bashrc} \\[4pt]
+Recargar configuración del intérprete
+  & (reiniciar CMD)
+  & \texttt{source \textasciitilde/.bashrc} \\[4pt]
+Abrir VS Code (WSL)
+  & \texttt{code .}
+  & \texttt{code .} \\[4pt]
+Parámetro 1 del script
+  & \texttt{\%\textasciitilde1}
+  & \texttt{\$1} \\[4pt]
+Comprobar si una variable está vacía
+  & \texttt{if "\%VAR\%"==""}
+  & \texttt{if [ -z "\$VAR" ]} \\[4pt]
+Comprobar si existe un directorio
+  & \texttt{if exist "DIR\textbackslash"}
+  & \texttt{if [ -d "DIR" ]} \\[4pt]
+Salir de un script o función
+  & \texttt{goto :eof}
+  & \texttt{return} (en función o script cargado con source) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[h]
+\centering
+\caption{Referencia rápida de \texttt{uv}: equivalencias con \texttt{pip} y \texttt{venv}}
+\label{tab:uv-cheatsheet}
+\begin{tabular}{@{}p{0.32\textwidth}p{0.28\textwidth}p{0.28\textwidth}@{}}
+\toprule
+\textbf{Tarea} & \textbf{pip / venv} & \textbf{uv} \\
+\midrule
+Instalar \texttt{uv}
+  & (no aplicable)
+  & Véase la Sección~\ref{sec:uv} \\[4pt]
+Crear entorno
+  & \texttt{python -m venv PATH}
+  & \texttt{uv venv PATH -{}-python 3.12} \\[4pt]
+Activar entorno
+  & \texttt{source PATH/bin/activate}
+  & \texttt{source PATH/bin/activate} \\[4pt]
+Instalar un paquete
+  & \texttt{pip install pkg}
+  & \texttt{uv pip install pkg} \\[4pt]
+Instalar desde \texttt{pyproject.toml}
+  & \texttt{pip install -e .}
+  & \texttt{uv sync} \\[4pt]
+Añadir una dependencia
+  & Editar \texttt{requirements.txt} manualmente
+  & \texttt{uv add pkg} \\[4pt]
+Eliminar una dependencia
+  & Editar \texttt{requirements.txt} manualmente
+  & \texttt{uv remove pkg} \\[4pt]
+Generar archivo de bloqueo
+  & \texttt{pip freeze > req.txt}
+  & \texttt{uv lock} (o implícito en \texttt{uv sync}) \\[4pt]
+Instalar desde archivo de bloqueo
+  & \texttt{pip install -r req.txt}
+  & \texttt{uv sync} \\[4pt]
+Script lanzador (Windows)
+  & \texttt{ActivateEnv.bat}
+  & \texttt{ActivateUVEnv.bat} \\[4pt]
+Función lanzadora (Linux)
+  & \texttt{ActivateEnv()} en \texttt{.bashrc}
+  & \texttt{ActivateUVEnv()} en \texttt{.bashrc} \\[4pt]
+Raíz del entorno
+  & \texttt{C:\textbackslash penv} / \texttt{\textasciitilde/penv}
+  & \texttt{C:\textbackslash uvenv} / \texttt{\textasciitilde/uvenv} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ============================================================
+\section{Resumen}
+\label{sec:summary}
+% ============================================================
+
+Este capítulo cubrió las herramientas y técnicas para gestionar entornos de
+Python y automatizar la configuración de proyectos en Windows y Linux:
+
+\begin{itemize}
+  \item \textbf{Entornos virtuales de Python}: copias aisladas de Python,
+        una por proyecto, que previenen conflictos de dependencias entre
+        proyectos. Cada entorno tiene su propio conjunto de paquetes
+        instalados, y eliminar uno no tiene efecto sobre ningún otro.
+  \item \textbf{La cadena estándar de herramientas \texttt{pip} y
+        \texttt{venv}}: las herramientas respaldadas por la fundación e
+        incluidas con cada instalación de Python para crear entornos,
+        instalar paquetes y registrar dependencias en
+        \texttt{requirements.txt}. Conocer esta cadena de herramientas
+        sigue siendo una habilidad esencial independientemente de qué
+        otras herramientas adopte.
+  \item \textbf{\texttt{uv}}: una alternativa moderna y de alto rendimiento
+        desarrollada por Astral que ofrece instalaciones drásticamente más
+        rápidas, una caché global de paquetes, archivos de bloqueo
+        reproducibles con hashes criptográficos y soporte nativo para
+        \texttt{pyproject.toml}. Debido a que \texttt{uv} sincroniza
+        automáticamente las dependencias desde un archivo de bloqueo
+        mediante \texttt{uv sync}, la reproducción del entorno se vuelve
+        un único comando en lugar de un proceso manual.
+  \item \textbf{Scripting de Nivel~1}: escribir scripts lanzadores
+        reutilizables (\texttt{ActivateEnv.bat} y \texttt{ActivateEnv.sh}
+        para entornos gestionados por \texttt{pip};
+        \texttt{ActivateUVEnv.bat} y la función de intérprete de comandos
+        \texttt{ActivateUVEnv()} para entornos gestionados por
+        \texttt{uv}) y scripts de una línea específicos del proyecto
+        (\texttt{\ProjectName{}.bat}, \texttt{\ProjectName{}.sh}) que
+        activan el entorno correcto, cambian al directorio del proyecto
+        e inician VS Code en una sola invocación.
+  \item \textbf{Scripting de Nivel~2}: funciones de intérprete de comandos
+        definidas en \texttt{\textasciitilde/.bashrc} que proporcionan un
+        comando de inicio de una sola palabra desde cualquier directorio,
+        sin necesidad del prefijo \texttt{source}.
+  \item \textbf{La distinción entre \texttt{source} y ejecutar}: en Linux,
+        ejecutar un script normalmente genera un intérprete de comandos
+        hijo cuyos cambios de entorno se desvanecen cuando termina. El
+        comando \texttt{source} (o su abreviatura \texttt{.}) ejecuta el
+        script en el intérprete de comandos actual, razón por la cual la
+        activación del entorno virtual requiere cargarlo con source. Esta
+        misma distinción explica por qué \texttt{ActivateEnv.sh} usa
+        \texttt{return} en lugar de \texttt{exit} para el manejo de
+        errores.
+\end{itemize}
+
+El comando \texttt{\ProjectName{}} que construyó en este capítulo es un
+ejemplo pequeño pero significativo de un principio más amplio: la línea
+de comandos le permite codificar su flujo de trabajo en scripts
+repetibles, compartibles y mejorables. Cada paso tedioso de configuración
+que elimine hoy es carga cognitiva liberada para el trabajo que realmente
+importa.
+

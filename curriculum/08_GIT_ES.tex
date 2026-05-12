@@ -1,0 +1,438 @@
+% ============================================================
+\chapter{Control de versiones con Git y GitHub}
+\label{ch:git}
+% ============================================================
+
+% ============================================================
+\section{Configuración de la autenticación SSH para GitHub en Linux}
+% ============================================================
+GitHub ya no admite la autenticación por contraseña para operaciones de Git sobre HTTPS.
+En su lugar, la autenticación debe realizarse utilizando un Token de Acceso Personal o
+una clave SSH. El método recomendado para entornos Linux es la autenticación SSH.
+
+El siguiente procedimiento genera una clave SSH y configura Git para autenticarse
+con GitHub.
+
+\subsection{Generar una clave SSH}
+
+Cree una nueva clave SSH utilizando el algoritmo \texttt{ed25519}:
+
+\begin{lstlisting}[basicstyle=\footnotesize\ttfamily,escapeinside={(*@}{@*)}]
+ssh-keygen -t ed25519 -C "your_email@example.com"
+\end{lstlisting}
+
+Cuando se le solicite la ubicación del archivo, presione \texttt{Enter} para aceptar la predeterminada:
+
+\begin{lstlisting}[basicstyle=\footnotesize\ttfamily,escapeinside={(*@}{@*)}]
+~/.ssh/id_ed25519
+\end{lstlisting}
+
+Opcionalmente, proporcione una frase de contraseña para mayor seguridad.
+
+\subsection{Iniciar el agente SSH}
+
+Inicie el agente SSH y agregue la clave recién creada:
+
+\begin{lstlisting}[basicstyle=\footnotesize\ttfamily,escapeinside={(*@}{@*)}]
+eval "$(ssh-agent -s)"
+ssh-add ~/.ssh/id_ed25519
+\end{lstlisting}
+
+\subsection{Agregar la clave pública a GitHub}
+
+Muestre la clave pública:
+
+\begin{lstlisting}[basicstyle=\footnotesize\ttfamily,escapeinside={(*@}{@*)}]
+cat ~/.ssh/id_ed25519.pub
+\end{lstlisting}
+
+Copie toda la salida y agréguela a GitHub:
+
+\begin{enumerate}
+\item Navegue a \texttt{GitHub → Settings → SSH and GPG keys}
+\item Haga clic en \texttt{New SSH key}
+\item Pegue la clave copiada y guarde
+\end{enumerate}
+
+\subsection{Verificar la conexión}
+
+Pruebe la autenticación:
+
+\begin{lstlisting}[basicstyle=\footnotesize\ttfamily,escapeinside={(*@}{@*)}]
+ssh -T git@github.com
+\end{lstlisting}
+
+Una configuración exitosa mostrará un mensaje similar a:
+
+\begin{lstlisting}[basicstyle=\footnotesize\ttfamily,escapeinside={(*@}{@*)}]
+Hi <username>! You've successfully authenticated.
+\end{lstlisting}
+
+\subsection{Clonar un repositorio utilizando SSH}
+
+Los repositorios deben clonarse utilizando la URL de SSH:
+
+\begin{lstlisting}[basicstyle=\footnotesize\ttfamily,escapeinside={(*@}{@*)}]
+git clone git@github.com:USER/REPOSITORY.git
+\end{lstlisting}
+
+El uso de SSH evita las solicitudes de credenciales y permite operaciones
+de Git automatizadas y seguras.
+
+% ============================================================
+\section{Configuración de la autenticación SSH para GitHub en Windows}
+\label{sec:ssh-windows}
+% ============================================================
+
+Git admite dos protocolos para comunicarse con repositorios remotos: HTTPS y SSH. Si bien HTTPS es más sencillo de configurar inicialmente, la autenticación SSH ofrece un flujo de trabajo más fluido para los colaboradores frecuentes porque elimina las solicitudes repetidas de credenciales. Esta sección recorre el proceso completo de configuración de la autenticación basada en SSH para GitHub en una máquina con Windows utilizando Git Bash.
+
+\subsection{Abrir Git Bash}
+
+Git para Windows se distribuye con su propio cliente OpenSSH incluido y un intérprete de comandos tipo Unix llamado Git Bash. Todos los comandos SSH en esta sección deben ejecutarse dentro de Git Bash, no en el Símbolo del sistema ni en PowerShell, ya que los ejecutables \texttt{ssh}, \texttt{ssh-keygen} y \texttt{ssh-agent} incluidos se encuentran en el directorio de instalación de Git para Windows y no están automáticamente disponibles en otras terminales.
+
+Para abrir Git Bash, haga clic con el botón derecho en el Escritorio o en cualquier carpeta del Explorador de archivos y seleccione \textbf{Git Bash Here} en el menú contextual. Alternativamente, busque \textbf{Git Bash} en el menú Inicio de Windows y ejecútelo desde allí.
+
+\subsection{Generación de una clave SSH}
+
+La autenticación SSH se basa en un par de claves pública/privada. La clave privada permanece en su máquina; la clave pública se carga en GitHub. Genere un nuevo par de claves utilizando el algoritmo \texttt{ed25519}, que es moderno, compacto y se recomienda por encima del antiguo RSA predeterminado:
+
+\begin{lstlisting}[style=bashstyle, caption={Generar un par de claves SSH ed25519},escapeinside={(*@}{@*)}]
+ssh-keygen -t ed25519 -C "your_email@example.com"
+\end{lstlisting}
+
+Reemplace \texttt{your\_email@example.com} con la dirección asociada a su cuenta de GitHub. Cuando se le solicite una ubicación de archivo, presione \textbf{Enter} para aceptar la ruta predeterminada:
+
+\begin{lstlisting}[style=windowsStyle, caption={Ubicación predeterminada de la clave en Windows},escapeinside={(*@}{@*)}]
+C:\Users\YourName\.ssh\id_ed25519
+\end{lstlisting}
+
+A continuación, se le pedirá que introduzca una frase de contraseña opcional. Una frase de contraseña agrega una segunda capa de protección en caso de que su archivo de clave privada quede expuesto alguna vez; sin embargo, debe introducirse cada vez que se utilice la clave (a menos que configure el agente SSH para almacenarla en caché). Presione \textbf{Enter} dos veces para omitir la frase de contraseña si prefiere no establecer una.
+
+\subsection{Iniciar el agente SSH}
+
+El agente SSH es un proceso en segundo plano que mantiene las claves privadas descifradas en memoria, de modo que usted no tenga que volver a introducir una frase de contraseña para cada operación de Git. En Linux y macOS el agente normalmente se inicia de forma automática por la sesión de escritorio, pero en Windows el \texttt{ssh-agent} incluido con Git Bash debe iniciarse manualmente en cada nueva sesión de terminal.
+
+Inicie el agente y agregue su clave privada con los siguientes dos comandos:
+
+\begin{lstlisting}[style=bashstyle, caption={Iniciar el agente SSH y agregar la clave privada},escapeinside={(*@}{@*)}]
+eval "$(ssh-agent -s)"
+ssh-add ~/.ssh/id_ed25519
+\end{lstlisting}
+
+El primer comando lanza el agente y establece las variables de entorno necesarias en el intérprete de comandos actual. El segundo comando registra su clave privada en el agente que se está ejecutando. Si estableció una frase de contraseña durante la generación de la clave, se le pedirá que la introduzca ahora.
+
+\begin{tipbox}{Automatización del inicio del agente}
+Los comandos anteriores deben repetirse cada vez que abra una nueva sesión de Git Bash. Para evitarlo, puede agregar las siguientes líneas a su archivo \texttt{\textasciitilde/.bashrc} para que el agente se inicie automáticamente:
+
+\begin{lstlisting}[style=bashstyle,escapeinside={(*@}{@*)}]
+eval "$(ssh-agent -s)" > /dev/null 2>&1
+ssh-add ~/.ssh/id_ed25519 2>/dev/null
+\end{lstlisting}
+
+Abra o cree \texttt{\textasciitilde/.bashrc} en un editor de texto, pegue las dos líneas al final del archivo y guarde. Las redirecciones suprimen los mensajes de inicio para que no saturen su terminal. La próxima vez que abra Git Bash, el agente se iniciará y cargará su clave sin pasos manuales.
+\end{tipbox}
+
+\subsection{Agregar la clave pública a GitHub}
+
+GitHub necesita su clave \emph{pública} para verificar su identidad. Muestre su contenido con:
+
+\begin{lstlisting}[style=bashstyle, caption={Mostrar la clave pública},escapeinside={(*@}{@*)}]
+cat ~/.ssh/id_ed25519.pub
+\end{lstlisting}
+
+La salida será una sola línea larga que comienza con \texttt{ssh-ed25519}. Seleccione y copie la línea completa, incluyendo la dirección de correo electrónico al final.
+
+A continuación, navegue a GitHub en su navegador y siga estos pasos:
+
+\begin{enumerate}
+    \item Haga clic en la foto de su perfil en la esquina superior derecha y seleccione \textbf{Settings}.
+    \item En la barra lateral izquierda, haga clic en \textbf{SSH and GPG keys}.
+    \item Haga clic en \textbf{New SSH key}.
+    \item Asigne a la clave un título descriptivo (por ejemplo, \textit{Windows laptop}).
+    \item Pegue la clave pública copiada en el campo \textbf{Key}.
+    \item Haga clic en \textbf{Add SSH key} y confirme con su contraseña de GitHub si se le solicita.
+\end{enumerate}
+
+\subsection{Verificación de la conexión}
+
+Antes de utilizar SSH para cualquier operación en un repositorio, confirme que GitHub puede autenticar su clave:
+
+\begin{lstlisting}[style=bashstyle, caption={Probar la conexión SSH a GitHub},escapeinside={(*@}{@*)}]
+ssh -T git@github.com
+\end{lstlisting}
+
+En la primera conexión, SSH mostrará una huella digital y le preguntará si confía en el servidor. Escriba \texttt{yes} y presione \textbf{Enter}. Si la autenticación es exitosa, verá un mensaje similar a:
+
+\begin{lstlisting}[style=inlineStyle, caption={Respuesta esperada de GitHub},escapeinside={(*@}{@*)}]
+Hi username! You've successfully authenticated, but GitHub does
+not provide shell access.
+\end{lstlisting}
+
+Si en cambio recibe un error \texttt{Permission denied}, verifique que el agente se está ejecutando (\texttt{ssh-add -l} debería listar su clave) y que la clave pública correcta se ha agregado a su cuenta de GitHub.
+
+\subsection{Clonación de un repositorio utilizando SSH}
+
+Una vez confirmada la autenticación, clone los repositorios utilizando la URL remota SSH:
+
+\begin{lstlisting}[style=bashstyle, caption={Clonar un repositorio por SSH},escapeinside={(*@}{@*)}]
+git clone git@github.com:USER/REPOSITORY.git
+\end{lstlisting}
+
+Reemplace \texttt{USER} por el nombre de usuario de GitHub del propietario del repositorio y \texttt{REPOSITORY} por el nombre del repositorio.
+
+\begin{warningbox}{Utilice la URL remota SSH, no HTTPS}
+La URL remota SSH comienza con \texttt{git@github.com:} y termina con \texttt{.git}. \emph{No} es la misma que la URL HTTPS, que comienza con \texttt{https://github.com/}. Si usted clona o hace push utilizando la forma HTTPS después de configurar la autenticación SSH, Git seguirá solicitándole un nombre de usuario y una contraseña de GitHub (o token de acceso personal). Verifique siempre la URL remota con \texttt{git remote -v} y actualícela si es necesario:
+
+\begin{lstlisting}[style=bashstyle,escapeinside={(*@}{@*)}]
+git remote set-url origin git@github.com:USER/REPOSITORY.git
+\end{lstlisting}
+\end{warningbox}
+
+\begin{table}[htbp]
+\centering
+\caption{Comparación de la configuración SSH: Linux/macOS vs.\ Windows (Git Bash).}
+\label{tab:ssh-comparison}
+\begin{tabular}{p{3.5cm} p{5.5cm} p{5.5cm}}
+\toprule
+\textbf{Paso} & \textbf{Linux / macOS} & \textbf{Windows (Git Bash)} \\
+\midrule
+Abrir terminal &
+Abra la aplicación de terminal del sistema (Terminal, iTerm2, etc.) &
+Haga clic con el botón derecho en el Escritorio o en una carpeta y seleccione \textit{Git Bash Here}, o busque Git Bash en el menú Inicio \\
+\addlinespace
+Generar clave &
+\lstinline[style=inlineStyle]{ssh-keygen -t ed25519 -C "email"} (almacenada en \texttt{\textasciitilde/.ssh/}) &
+Mismo comando en Git Bash; la ruta predeterminada es \texttt{C:\textbackslash Users\textbackslash Name\textbackslash .ssh\textbackslash} \\
+\addlinespace
+Iniciar agente &
+El agente normalmente se inicia de forma automática por la sesión de escritorio; ejecute \lstinline[style=inlineStyle]{eval "$(ssh-agent -s)"} si es necesario &
+Debe iniciarse manualmente en cada sesión: \lstinline[style=inlineStyle]{eval "$(ssh-agent -s)"} \\
+\addlinespace
+Agregar clave al agente &
+\lstinline[style=inlineStyle]{ssh-add ~/.ssh/id_ed25519} &
+Mismo comando en Git Bash \\
+\addlinespace
+Mostrar la clave pública &
+\lstinline[style=inlineStyle]{cat ~/.ssh/id_ed25519.pub} &
+Mismo comando en Git Bash \\
+\addlinespace
+Verificar conexión &
+\lstinline[style=inlineStyle]{ssh -T git@github.com} &
+Mismo comando en Git Bash \\
+\addlinespace
+Clonar con SSH &
+\lstinline[style=inlineStyle]{git clone git@github.com:USER/REPO.git} &
+Mismo comando en Git Bash \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ============================================================
+\subsection{Push a múltiples repositorios remotos}
+\label{subsec:multiple-remotes}
+% ============================================================
+
+Un único repositorio local puede mantener conexiones simultáneas con cualquier
+número de repositorios remotos. Esto es útil cuando un proyecto debe
+replicarse entre una cuenta de organización y una cuenta personal (por
+ejemplo, mantener los materiales del taller de \ProjectName{} sincronizados
+entre la organización \texttt{\ProjectName{}} y la cuenta personal de
+GitHub \texttt{YourVeryOwnGitHubAccount}).
+
+\subsubsection{Conceptos}
+
+Git identifica los repositorios remotos mediante \emph{nombres} cortos. El nombre
+\texttt{origin} es el predeterminado convencional que se asigna cuando un repositorio
+se clona por primera vez. Se pueden registrar remotos adicionales bajo cualquier nombre.
+Cada entrada remota almacena una URL de fetch y una URL de push, y ambas pueden
+establecerse de forma independiente.
+
+\begin{infobox}
+Un nombre de remoto es puramente local: solo existe en el
+archivo \texttt{.git/config} de su máquina y nunca se envía a ningún
+servidor. Dos desarrolladores que clonen el mismo repositorio pueden dar al mismo
+remoto nombres totalmente distintos sin consecuencias.
+\end{infobox}
+
+\subsubsection{Listar los remotos registrados}
+
+Antes de agregar un remoto, confirme qué está ya registrado:
+
+\begin{lstlisting}[style=bashstyle, caption={Listar todos los remotos y sus URL},escapeinside={(*@}{@*)}]
+git remote -v
+\end{lstlisting}
+
+Cada remoto aparece dos veces, una para fetch y otra para push. Un repositorio
+recién clonado normalmente muestra solo \texttt{origin}:
+
+\begin{lstlisting}[style=inlineStyle,escapeinside={(*@}{@*)}]
+origin  (*@\ProjectGit@*).git (fetch)
+origin  (*@\ProjectGit@*).git (push)
+\end{lstlisting}
+
+\subsubsection{Agregar un segundo remoto}
+
+Registre un remoto adicional con \texttt{git remote add}:
+
+\begin{lstlisting}[style=bashstyle, caption={Registrar un remoto espejo personal (Linux / WSL)},escapeinside={(*@}{@*)}]
+git remote add YourVeryOwnGitHubAccount \
+    (*@\ProjectGit@*).git
+\end{lstlisting}
+
+\begin{lstlisting}[style=psstyle, caption={Registrar un remoto espejo personal (PowerShell)},escapeinside={(*@}{@*)}]
+git remote add YourVeryOwnGitHubAccount `
+    (*@\ProjectGit@*).git
+\end{lstlisting}
+
+Verifique el resultado:
+
+\begin{lstlisting}[style=bashstyle,escapeinside={(*@}{@*)}]
+git remote -v
+\end{lstlisting}
+
+La salida ahora debería mostrar cuatro líneas:
+
+\begin{lstlisting}[style=inlineStyle,escapeinside={(*@}{@*)}]
+YourVeryOwnGitHubAccount  https://github.com/YourVeryOwnGitHubAccount/(*@\ProjectName@*).git (fetch)
+YourVeryOwnGitHubAccount  https://github.com/YourVeryOwnGitHubAccount/(*@\ProjectName@*).git (push)
+origin           (*@\ProjectGit@*).git (fetch)
+origin           (*@\ProjectGit@*).git (push)
+\end{lstlisting}
+
+\subsubsection{Push a cada remoto}
+
+Con dos remotos registrados, cada push debe emitirse explícitamente a
+cada destino. Git no hace push a múltiples remotos de forma automática
+a menos que se configure un destino de push:
+
+\begin{lstlisting}[style=bashstyle, caption={Push explícito a ambos remotos},escapeinside={(*@}{@*)}]
+git push origin HEAD
+git push YourVeryOwnGitHubAccount HEAD
+\end{lstlisting}
+
+\texttt{HEAD} se resuelve a la rama actual, lo que constituye la forma más segura
+de usar en scripts porque no depende de conocer el nombre de la rama
+por adelantado.
+
+\subsubsection{Comprobar si un remoto existe antes de hacer push}
+
+En scripts automatizados es buena práctica verificar que un remoto esté
+registrado antes de intentar hacer push, de modo que un remoto faltante produzca
+un diagnóstico claro en lugar de un error fatal.
+
+\begin{lstlisting}[style=bashstyle, caption={Proteger un push con una verificación de existencia del remoto (bash)},escapeinside={(*@}{@*)}]
+if git remote get-url YourVeryOwnGitHubAccount > /dev/null 2>&1; then
+    git push YourVeryOwnGitHubAccount HEAD
+else
+    echo "Remote 'YourVeryOwnGitHubAccount' not configured."
+    echo "Register it with:"
+    echo "  git remote add YourVeryOwnGitHubAccount \
+https://github.com/YourVeryOwnGitHubAccount/(*@\ProjectName@*).git"
+fi
+\end{lstlisting}
+
+\begin{lstlisting}[style=psstyle, caption={Proteger un push con una verificación de existencia del remoto (PowerShell / batch)},escapeinside={(*@}{@*)}]
+git remote get-url YourVeryOwnGitHubAccount >nul 2>&1
+if errorlevel 1 (
+    echo Remote 'YourVeryOwnGitHubAccount' not configured.
+    echo Register it with:
+    echo   git remote add YourVeryOwnGitHubAccount ^
+        https://github.com/YourVeryOwnGitHubAccount/(*@\ProjectName@*).git
+) else (
+    git push YourVeryOwnGitHubAccount HEAD
+)
+\end{lstlisting}
+
+\subsubsection{Gestión de remotos}
+
+La Tabla~\ref{tab:git-remote-commands} resume el conjunto completo de comandos
+de gestión de remotos.
+
+\begin{table}[h]
+\centering
+\caption{Comandos de gestión de remotos de Git}
+\label{tab:git-remote-commands}
+\begin{tabular}{lp{8.5cm}}
+\toprule
+Comando & Efecto \\
+\midrule
+\texttt{git remote -v} &
+  Lista todos los remotos con sus URL de fetch y push. \\
+\texttt{git remote add <n> <url>} &
+  Registra un nuevo remoto bajo el nombre indicado. \\
+\texttt{git remote remove <n>} &
+  Elimina una entrada remota de la configuración local. \\
+\texttt{git remote rename <old> <new>} &
+  Renombra un remoto sin cambiar su URL. \\
+\texttt{git remote set-url <n> <url>} &
+  Actualiza la URL de un remoto existente. \\
+\texttt{git remote get-url <n>} &
+  Imprime la URL de un remoto con nombre; termina con error si
+  el remoto no existe (útil en scripts). \\
+\texttt{git remote show <n>} &
+  Muestra información detallada sobre un remoto, incluidas
+  las ramas rastreadas y la configuración de push. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{Alternativa: un único remoto con múltiples URL de push}
+
+Git también admite configurar un único nombre de remoto para hacer push a dos URL
+de forma simultánea, de modo que un único \texttt{git push origin HEAD} alcance
+ambos destinos. Esto es conveniente pero reduce la visibilidad; una falla
+en la segunda URL puede pasar fácilmente desapercibida en la salida.
+
+\begin{lstlisting}[style=bashstyle, caption={Agregar una segunda URL de push al remoto origin},escapeinside={(*@}{@*)}]
+# La primera URL de push ya esta establecida desde el clon.
+# Agregue el repositorio personal como destino adicional de push:
+git remote set-url --add --push origin \
+    (*@\ProjectGit@*).git
+git remote set-url --add --push origin \
+    https://github.com/YourVeryOwnGitHubAccount/(*@\ProjectName@*).git
+\end{lstlisting}
+
+\begin{warningbox}
+Al utilizar \texttt{set-url --add --push}, tenga en cuenta que la \emph{primera}
+llamada reemplaza la URL de push predeterminada en lugar de añadirla. Ambas URL
+deben especificarse explícitamente como se muestra arriba. Verifique el resultado con
+\texttt{git remote -v} antes de confiar en esta configuración en
+scripts automatizados.
+\end{warningbox}
+
+Para el proyecto \textsc{Alice}, se prefiere el enfoque explícito de dos remotos
+(llamadas a \texttt{git push} separadas por remoto) porque
+\texttt{gh.bat} verifica \texttt{errorlevel} después de cada push y puede
+reportar fallas de forma independiente. Una URL de push combinada expondría únicamente
+la segunda falla.
+
+% ============================================================
+\section{Resumen}
+\label{sec:git-summary}
+% ============================================================
+
+Este capítulo presentó el control de versiones con Git y GitHub, centrándose en
+los pasos prácticos necesarios para autenticar, clonar y sincronizar
+repositorios.
+
+\begin{itemize}
+    \item \textbf{Autenticación basada en claves SSH.} GitHub ya no admite
+    la autenticación por contraseña para operaciones de Git. Este capítulo cubrió el
+    procedimiento completo de configuración de SSH tanto en Linux como en Windows (utilizando Git Bash),
+    incluida la generación de claves con el algoritmo \texttt{ed25519}, la adición
+    de la clave pública a GitHub y la verificación de la conexión.
+
+    \item \textbf{Clonación de repositorios mediante SSH.} Una vez configurada
+    la autenticación, los repositorios se clonan utilizando la forma de URL
+    \texttt{git@github.com:}, que evita las solicitudes de credenciales en cada push y pull.
+
+    \item \textbf{Múltiples repositorios remotos.} Un único repositorio local
+    puede hacer push a más de un remoto. Este capítulo demostró cómo
+    registrar un segundo remoto y hacer push a ambos, manteniendo sincronizadas las copias
+    de la organización y la personal.
+
+    \item \textbf{Preparación, commit y push automatizados con
+    \texttt{gh.bat}.} El script \texttt{gh.bat} automatiza el ciclo de
+    add-commit-push, incluidos el sellado de versión y el push a
+    ambos remotos, reduciendo los pasos manuales repetitivos a un único comando.
+\end{itemize}

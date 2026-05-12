@@ -1,0 +1,839 @@
+% ============================================================
+% Capítulo: Infraestructura local de LLM con Ollama
+% ============================================================
+% Requisitos de preámbulo (agregar a _preamble.tex del documento principal):
+%   \usepackage{listings}
+%   \usepackage{xcolor}
+%   \usepackage{booktabs}
+%   \usepackage{amsmath}
+%   \usepackage{hyperref}
+%   \usepackage{tcolorbox}
+%   \tcbuselibrary{skins, breakable}
+%
+% \lstdefinestyle{bashstyle}{...}   % ver plantilla de preámbulo
+% \lstdefinestyle{psstyle}{...}     % variante PowerShell
+% \newtcolorbox{warningbox}{...}
+% \newtcolorbox{infobox}{...}
+% ============================================================
+
+\chapter{Infraestructura local de LLM con Ollama}
+\label{ch:ollama-infrastructure}
+
+\section{Introducción}
+
+\vs
+\noindent
+\textbf{Para los estudiantes:} este capítulo tiene dos partes que le son relevantes.
+La Sección~\ref{sec:apikeys} explica cómo configurar las claves de API
+necesarias para ejecutar los programas de agente en
+\texttt{resources/unit\_7/FOO/}. La referencia de la CLI de Ollama en la
+Sección~\ref{sec:install} cubre los comandos que usará durante
+los ejercicios de la unidad de LLM. No necesita leer el resto
+de este capítulo para completar el desafío de datos.
+\vs
+
+\vs
+\noindent
+\textbf{Para instructores y personal del programa:} este capítulo documenta
+la configuración completa de la infraestructura de servicio de LLM de dos
+máquinas utilizada por el programa \ProjectName{}, cubriendo el host de
+aplicaciones Dell Precision 7770 y el servidor de inferencia NVIDIA Spark.
+Incluye la instalación de Ollama, la configuración del servicio
+\texttt{systemd}, el control de acceso a la red, la gestión del presupuesto
+de memoria, los modos de despliegue de una y dos máquinas, las pruebas de
+conectividad y la planificación de capacidad.
+\vs
+
+\section{Inventario de hardware}
+\label{sec:hardware}
+
+Las dos máquinas que participan en esta configuración tienen arquitecturas
+de memoria fundamentalmente distintas, lo cual determina la selección de
+modelos y la capacidad de agentes.
+
+\subsection{Dell Precision 7770 (host de aplicaciones)}
+
+\begin{itemize}
+  \item \textbf{RAM de CPU:} 128\,GB (112\,GB disponibles después de la sobrecarga del sistema operativo)
+  \item \textbf{GPU:} NVIDIA RTX A5500 Laptop GPU, 16\,GB de VRAM (discreta)
+  \item \textbf{Arquitectura:} x86\_64
+  \item \textbf{Sistema operativo:} Windows~11 con WSL2 Ubuntu~24.04
+  \item \textbf{Rol:} Ejecuta una aplicación FastAPI,
+        PostgreSQL~16 y la capa de orquestación de agentes.
+        Aloja una instancia local de Ollama para el
+        modo de desarrollo de máquina única.
+\end{itemize}
+
+En el Dell, la VRAM de la RTX~A5500 (16\,GB) está \emph{separada} de la
+RAM del sistema. Ollama carga los pesos del modelo primero en la VRAM y
+sólo desborda a la RAM del sistema cuando el modelo excede la capacidad de
+la VRAM. La inferencia se degrada significativamente una vez que comienza
+el desbordamiento: los tokens por segundo pueden caer en un orden de
+magnitud en las porciones desbordadas del modelo.
+
+\subsection{NVIDIA Spark (servidor de LLM)}
+
+\begin{itemize}
+  \item \textbf{Memoria unificada:} 128\,GB físicos; aproximadamente 120\,GB
+        visibles para Ollama (110\,GB disponibles de forma conservadora)
+  \item \textbf{GPU:} NVIDIA GB10 SoC
+  \item \textbf{Arquitectura:} ARM64 (AArch64)
+  \item \textbf{Sistema operativo:} Ubuntu~24.04 (nativo, sin virtualización)
+  \item \textbf{Rol:} Servidor dedicado de inferencia de LLM. La CPU y la
+        GPU comparten el mismo grupo de memoria, por lo que los 110\,GB
+        completos están disponibles simultáneamente para los pesos del
+        modelo y la caché KV.
+\end{itemize}
+
+\begin{warningbox}
+El GB10 utiliza una arquitectura de \emph{memoria unificada}. A diferencia
+de una GPU discreta, no existe un presupuesto de VRAM separado que
+rastrear. El grupo de 110\,GB cubre los pesos, la caché KV y la sobrecarga
+del sistema operativo en conjunto. Esto hace que el Spark sea idóneo para
+servir múltiples modelos grandes simultáneamente (siempre que las ventanas
+de contexto estén acotadas), pero también significa que PagedAttention de
+vLLM, que está optimizado para GPU discretas con alta VRAM, proporciona
+menos beneficios aquí que el manejo nativo de memoria unificada de Ollama.
+\end{warningbox}
+
+\section{Topología de red}
+\label{sec:network}
+
+Ambas máquinas residen en la subred \texttt{utsarr.net} de UTSA. Al momento
+de la configuración tenían las siguientes direcciones:
+
+\begin{center}
+\begin{tabular}{llll}
+\toprule
+Máquina & Interfaz & Dirección IP & Subred \\
+\midrule
+Spark   & \texttt{enP7s7} & \texttt{10.2.14.24}  & \texttt{/23} \\
+Dell    & Ethernet~8      & \texttt{10.2.14.143} & \texttt{/23} \\
+\midrule
+Spark   & MAC de \texttt{enP7s7} & \multicolumn{2}{l}{\texttt{4c:bb:47:2c:74:eb}} \\
+Dell    & MAC de Ethernet~8      & \multicolumn{2}{l}{\texttt{ac:91:a1:7d:06:ff}} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Conmutador frente a enrutador}
+
+Un conmutador no administrado de 5 puertos Netgear ProSAFE GS105 conecta
+las dos máquinas. Un \emph{conmutador no administrado} opera en la Capa~2
+del modelo OSI: reenvía tramas Ethernet entre puertos basándose en
+direcciones MAC, pero no tiene concepto de subredes IP, enrutamiento o
+restricción de tráfico. Un \emph{enrutador} opera en la Capa~3 y es
+necesario para separar subredes o aplicar políticas de tráfico a nivel de IP.
+
+Debido a que ambas máquinas están en la misma subred \texttt{/23}
+administrada por la red universitaria, las entradas ARP no son visibles
+entre los hosts; el tráfico cruza al menos un salto de enrutador, y ARP no
+atraviesa enrutadores. Este es el comportamiento esperado en una red
+enrutada y no debe interpretarse como un error de conectividad.
+
+\subsection{Filtrado por dirección MAC}
+
+Las reglas de firewall basadas en MAC (mediante \texttt{iptables}) sólo
+tienen sentido en el mismo segmento de Capa~2. Pueden ser suplantadas
+trivialmente y deben tratarse como una capa informativa más que como un
+límite de seguridad. Las reglas de firewall IP (\texttt{ufw}) son el
+control primario apropiado para restringir el acceso a Ollama a
+direcciones de cliente conocidas.
+
+\begin{lstlisting}[style=bashstyle, caption={Restringir Ollama solamente a la IP del Dell}]
+# En el Spark: permitir sólo al Dell, denegar todas las demás fuentes
+sudo ufw allow from 10.2.14.143 to any port 11434
+sudo ufw deny 11434
+\end{lstlisting}
+
+\subsection{Identificación de interfaces de red}
+
+Use los siguientes comandos para enumerar las interfaces y confirmar las
+direcciones antes de configurar las reglas de firewall.
+
+\begin{lstlisting}[style=bashstyle, caption={Linux: listar interfaces y direcciones}]
+ip a
+# Busque interfaces con estado UP y una dirección inet válida.
+# La línea link/ether de cada interfaz muestra la dirección MAC.
+\end{lstlisting}
+
+\begin{lstlisting}[style=psstyle, caption={Windows: listar interfaces y direcciones}]
+ipconfig /all
+# Busque adaptadores Ethernet activos con una IPv4 Address.
+# El campo Physical Address muestra la MAC (formato separado por guiones).
+\end{lstlisting}
+
+\begin{infobox}
+\textbf{Formatos de dirección MAC.} Las herramientas de Linux (\texttt{ip~a},
+\texttt{arp}) reportan las MAC en formato de minúsculas con dos puntos:
+\texttt{ac:91:a1:7d:06:ff}. El \texttt{ipconfig~{/}all} de Windows las
+reporta en formato de mayúsculas con guiones: \texttt{AC-91-A1-7D-06-FF}.
+Ambos representan la misma dirección. Los archivos de configuración y los
+scripts deben normalizarse a un único formato antes de la comparación.
+\end{infobox}
+
+\section{Instalación de Ollama}
+\label{sec:install}
+
+\subsection{Linux (Spark)}
+
+El script de instalación oficial detecta la arquitectura automáticamente
+y selecciona el binario apropiado (ARM64 en este caso).
+
+\begin{lstlisting}[style=bashstyle, caption={Instalar Ollama en Ubuntu}]
+curl -fsSL https://ollama.com/install.sh | sh
+\end{lstlisting}
+
+El instalador crea el usuario y el grupo \texttt{ollama}, agrega al
+usuario actual al grupo \texttt{ollama}, instala el binario en
+\texttt{/usr/local/bin/ollama} y registra un servicio \texttt{systemd}.
+Confirme la instalación:
+
+\begin{lstlisting}[style=bashstyle]
+ollama --version
+systemctl status ollama
+\end{lstlisting}
+
+\subsection{Windows (Dell)}
+
+Descargue el instalador de Windows desde \url{https://ollama.com} y
+ejecútelo. Ollama se registra en la bandeja del sistema y se inicia
+automáticamente. La API escucha en \texttt{127.0.0.1:11434} de forma
+predeterminada.
+
+\subsection{Entornos Conda}
+
+El Spark viene con Miniconda, que activa un entorno \texttt{(base)} de
+forma predeterminada. Ollama no requiere Python y debe instalarse a
+nivel de sistema, no dentro de un entorno Conda. Desactive la activación
+automática de Conda para evitar interferencias con las herramientas del
+sistema:
+
+\begin{lstlisting}[style=bashstyle]
+conda config --set auto_activate_base false
+\end{lstlisting}
+
+Para todo el trabajo de Python en esta pila, use entornos \texttt{venv}
+simples, que se traducen directamente a rutas \texttt{ExecStart} de
+\texttt{systemd} y mantienen la paridad de producción sin la sobrecarga
+de dependencias de Conda.
+
+\section{Configuración de Ollama para acceso de red}
+\label{sec:network-config}
+
+De forma predeterminada, Ollama se enlaza únicamente a \texttt{localhost}.
+Para la configuración de dos máquinas, el Spark debe exponer su API a la
+red. Configure esto mediante una sobrescritura de \texttt{systemd} para
+que el ajuste sobreviva a los reinicios del servicio y del sistema.
+
+\begin{lstlisting}[style=bashstyle, caption={Crear una sobrescritura de systemd en el Spark}]
+sudo systemctl edit ollama
+\end{lstlisting}
+
+Esto abre \texttt{/etc/systemd/system/ollama.service.d/override.conf}.
+Agregue lo siguiente:
+
+\begin{lstlisting}[style=bashstyle, caption={Sobrescritura de systemd para Ollama en el Spark}]
+[Service]
+Environment="OLLAMA_HOST=0.0.0.0:11434"
+Environment="OLLAMA_MAX_LOADED_MODELS=4"
+Environment="OLLAMA_NUM_PARALLEL=4"
+Environment="OLLAMA_KEEP_ALIVE=24h"
+Environment="OLLAMA_NUM_CTX=8192"
+\end{lstlisting}
+
+Aplique los cambios:
+
+\begin{lstlisting}[style=bashstyle]
+sudo systemctl daemon-reload
+sudo systemctl restart ollama
+systemctl status ollama
+\end{lstlisting}
+
+Las variables de entorno se explican en la Tabla~\ref{tab:ollama-env}.
+
+\begin{table}[h]
+\centering
+\caption{Variables de entorno clave de Ollama}
+\label{tab:ollama-env}
+\begin{tabular}{lp{9cm}}
+\toprule
+Variable & Efecto \\
+\midrule
+\texttt{OLLAMA\_HOST} &
+  Dirección y puerto de enlace. Use \texttt{0.0.0.0:11434} para aceptar
+  conexiones desde cualquier interfaz de red. \\
+\texttt{OLLAMA\_MAX\_LOADED\_MODELS} &
+  Número máximo de modelos residentes en memoria simultáneamente. Evita
+  el thrashing cuando \textsc{Max} despacha llamadas de agente concurrentes. \\
+\texttt{OLLAMA\_NUM\_PARALLEL} &
+  Número máximo de solicitudes de inferencia concurrentes por modelo. \\
+\texttt{OLLAMA\_KEEP\_ALIVE} &
+  Duración durante la cual un modelo permanece cargado después de su
+  última solicitud. El valor predeterminado es 5~minutos; \texttt{24h}
+  mantiene los modelos calientes a lo largo de una jornada laboral. \\
+\texttt{OLLAMA\_NUM\_CTX} &
+  Ventana de contexto predeterminada en tokens. \textbf{Crítico en el
+  Spark}: sin este límite, Ollama usa por defecto 262{,}144~tokens, lo
+  que asigna una caché KV lo suficientemente grande como para exceder la
+  memoria física en la mayoría de los modelos. Establezca en
+  \texttt{8192} como valor predeterminado seguro. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Gestión del presupuesto de memoria y de la ventana de contexto}
+\label{sec:memory}
+
+\subsection{La fórmula rectora}
+
+La memoria total consumida por agente tiene dos componentes independientes:
+
+\begin{equation}
+M_{\text{agent}} = M_{\text{weights}} + M_{\text{KV}}
+\label{eq:memory}
+\end{equation}
+
+\noindent donde la huella de los pesos bajo cuantización Q4 se aproxima por:
+
+\begin{equation}
+M_{\text{weights}} \approx 0.5\,\text{GB} \times B_{\text{params}}
+\label{eq:weights}
+\end{equation}
+
+\noindent y la huella de la caché KV es:
+
+\begin{equation}
+M_{\text{KV}} \approx \frac{n_{\text{layers}} \times n_{\text{kv\_heads}}
+  \times d_{\text{head}} \times C \times 2 \times 2}{10^9}\;\text{GB}
+\label{eq:kvcache}
+\end{equation}
+
+\noindent donde $C$ es la longitud del contexto en tokens y el factor 2
+aparece dos veces: una por el par clave/valor y otra por el tipo de dato
+de 2~bytes (BF16).
+
+\begin{warningbox}
+\textbf{La ventana de contexto domina la memoria en modelos grandes.} Un
+modelo \texttt{llama3.3:70b} requiere aproximadamente 40\,GB para los
+pesos en Q4. Con el contexto predeterminado de Ollama de 262{,}144~tokens,
+la caché KV agrega otros 134\,GB, llevando la asignación total a 174\,GB,
+lo que excede los 120\,GB del Spark y hace que la carga falle. Con un
+contexto de 8{,}192~tokens, la caché KV se reduce a 2.5\,GB, dando un
+total de 42.5\,GB que encaja cómodamente.
+\end{warningbox}
+
+\subsection{El patrón Modelfile para modelos grandes}
+
+Ollama no admite sobrescrituras de contexto en tiempo de ejecución
+mediante la bandera \texttt{--num-ctx}. El mecanismo correcto es un
+\emph{Modelfile}, que crea un derivado nombrado del modelo base con el
+parámetro incorporado.
+
+\subsubsection{Linux (Spark y WSL)}
+
+\begin{lstlisting}[style=bashstyle, caption={Crear una variante de modelo con contexto acotado en Linux}]
+cat > /tmp/Modelfile.llama70b << 'EOF'
+FROM llama3.3:70b
+PARAMETER num_ctx 8192
+EOF
+ollama create llama3.3:70b-ctx8k -f /tmp/Modelfile.llama70b
+ollama run llama3.3:70b-ctx8k "Reply with one word: ready"
+\end{lstlisting}
+
+\subsubsection{Windows (PowerShell)}
+
+PowerShell usa una sintaxis de here-string para literales multilínea. El
+cierre \texttt{"@} debe aparecer en el \emph{inicio absoluto de una línea}
+sin espacios ni tabuladores al comienzo; este es un requisito estricto del
+analizador de PowerShell.
+
+\begin{lstlisting}[style=psstyle, caption={Crear una variante de modelo con contexto acotado en Windows}]
+@"
+FROM llama3.3:70b
+PARAMETER num_ctx 8192
+"@ | Out-File -FilePath "$env:TEMP\Modelfile.llama70b" -Encoding utf8
+ollama create llama3.3:70b-ctx8k -f "$env:TEMP\Modelfile.llama70b"
+\end{lstlisting}
+
+Aplique el mismo patrón a cada modelo por encima de los 20\,B parámetros.
+La convención de nombres \texttt{<model>-ctx8k} hace explícita la
+restricción operativa en el sitio de la llamada.
+
+\subsection{Capacidad de agentes del hardware}
+
+Dada la fórmula del presupuesto de memoria, el número máximo de agentes
+que pueden ejecutarse simultáneamente en una máquina es:
+
+\begin{equation}
+N_{\text{hw}} = \left\lfloor \frac{M_{\text{available}}}{M_{\text{agent}}} \right\rfloor
+\label{eq:nhw}
+\end{equation}
+
+La Tabla~\ref{tab:model-registry} presenta el inventario de modelos
+confirmado con el estado medido en cada plataforma y la huella de memoria
+aproximada con un contexto de 8{,}192 tokens.
+{\scriptsize
+\begin{table}[h]
+\centering
+\caption{Inventario de modelos confirmado y huella de memoria con contexto de 8K}
+\label{tab:model-registry}
+\footnotesize
+\begin{tabular}{llrrrll}
+\toprule
+Modelo & Nombre en Ollama & Parám. & $M_w$ & $M_{\text{KV}}$ &
+  $M_{\text{total}}$ & Estado \\
+ & & (B) & (GB) & (GB) & (GB) & \\
+\midrule
+nemotron-3-super:120b & \texttt{...-ctx8k} & 120 (MoE) & 65 & 4.0 & 69.0 &
+  \checkmark\ ambas \\
+llama3.3:70b          & \texttt{...-ctx8k} & 70         & 40 & 2.5 & 42.5 &
+  \checkmark\ ambas \\
+qwen3:32b             & \texttt{...-ctx8k} & 32         & 18 & 1.3 & 19.3 &
+  \checkmark\ ambas \\
+mistral-small:22b     & \texttt{mistral-small:22b} & 22 & 13 & 1.0 & 14.0 &
+  \checkmark\ ambas \\
+phi4:14b              & \texttt{phi4:14b}  & 14         &  8 & 0.8 &  8.8 &
+  \checkmark\ ambas \\
+qwen3:14b             & \texttt{qwen3:14b} & 14         &  8 & 0.8 &  8.8 &
+  \checkmark\ ambas \\
+mistral-nemo:12b      & \texttt{mistral-nemo:12b} & 12 &  7 & 0.7 &  7.7 &
+  \checkmark\ ambas \\
+mistral:7b            & \texttt{mistral:7b}& 7          &  4 & 0.5 &  4.5 &
+  \checkmark\ ambas \\
+deepseek-r1:8b        & \texttt{deepseek-r1:8b} & 8     &  5 & 0.5 &  5.5 &
+  \checkmark\ ambas \\
+gemma3:4b             & \texttt{gemma3:4b} & 4          &  2.5 & 0.3 & 2.8 &
+  \checkmark\ ambas \\
+phi4-mini:3.8b        & \texttt{phi4-mini:3.8b} & 3.8   &  2.5 & 0.3 & 2.8 &
+  \checkmark\ ambas \\
+qwen3:4b              & \texttt{qwen3:4b}  & 4          &  2.5 & 0.3 & 2.8 &
+  \checkmark\ Dell; \dag\ Spark \\
+gemma3:1b             & \texttt{gemma3:1b} & 1          &  0.8 & 0.1 & 0.9 &
+  \checkmark\ ambas \\
+deepseek-v3.1:671b    & ---                & 671 (MoE)  & 404 & 8.0 & 412 &
+  $\times$\ demasiado grande \\
+\bottomrule
+\multicolumn{7}{l}{\dag\ Falla ARM64 en Spark (error de Ollama); funciona en Dell x86\_64.}
+\end{tabular}
+\end{table}
+}
+\subsection{Modelos con razonamiento y presupuestos de tokens}
+
+Varios modelos del inventario implementan razonamiento de cadena de
+pensamiento internamente, emitiendo un \emph{bloque de pensamiento} antes
+de su respuesta final. Estos incluyen \texttt{qwen3} (todos los tamaños),
+\texttt{deepseek-r1} y \texttt{nemotron-3-super}. Al llamar a estos
+modelos a través del endpoint compatible con OpenAI con un presupuesto
+pequeño de \texttt{max\_tokens}, el presupuesto puede agotarse dentro del
+bloque de pensamiento, produciendo ya sea un error HTTP~500 o una
+respuesta vacía.
+
+La mitigación correcta \emph{no} es suprimir el pensamiento mediante la
+indicación de sistema \texttt{/no\_think}, lo cual puede dejar al modelo
+sin nada que decir fuera del bloque. En su lugar, establezca
+\texttt{max\_tokens} de forma generosa (500 o más) y elimine las
+etiquetas de pensamiento de la respuesta:
+
+\begin{lstlisting}[style=bashstyle, caption={Patrones de etiquetas de pensamiento a eliminar de la salida del modelo}]
+# Estilo DeepSeek-R1:
+<think> ... </think>
+
+# Estilo nativo de Qwen3 / Ollama:
+Thinking...
+  ... reasoning text ...
+...done thinking.
+\end{lstlisting}
+
+\section{Configuración de claves de API}
+\label{sec:apikeys}
+
+Recibirá una clave de API para OpenAI y Anthropic durante nuestra primera sesión. Puede obtener su propia API de forma gratuita en \href{https://groq.com}{Groq}. Necesita crear tres variables de clave de API siguiendo el procedimiento descrito a continuación: \texttt{OPENAI\_API\_KEY}, \texttt{ANTHROPIC\_API\_KEY}, \texttt{GROQ\_API\_KEY}. Pruebe los programas ubicados en \texttt{resources/unit\_7/FOO/} del repositorio \ProjectName{}: \texttt{agentGroq.py}, \texttt{agentGPT.py} y \texttt{agentClaude.py}.
+
+\vs
+
+En Windows, ejecute los siguientes tres comandos, uno a la vez, para cada clave de API. El ejemplo para \texttt{OPENAI\_API\_KEY} es el siguiente:
+
+\begin{verbatim}
+setx OPENAI_API_KEY "[sk-... API key]"
+Exit
+echo %OPENAI_API_KEY%
+\end{verbatim}
+
+En el código anterior, reemplace \texttt{[sk-... API key]} con su clave de API real. El primer comando establece la variable de entorno de forma permanente para su cuenta de usuario. El segundo comando cierra el Símbolo del sistema para asegurar que la nueva variable de entorno quede registrada. El tercer comando, ejecutado en una nueva ventana del Símbolo del sistema, imprime el valor almacenado para verificar que se haya configurado correctamente.
+
+\vs
+
+En Mac/Linux ejecute los siguientes tres comandos, uno a la vez, para cada clave de API. El ejemplo para \texttt{OPENAI\_API\_KEY} es el siguiente:
+
+\begin{verbatim}
+echo "export OPENAI_API_KEY='[sk-... API key]'" >> ~/.zshrc
+source ~/.zshrc
+echo $OPENAI_API_KEY
+\end{verbatim}
+
+En el código anterior, reemplace \texttt{'[sk-... API key]'} con su clave de API real.
+
+\vs
+
+Según lo reportado por Bryan Fowler, si experimenta errores al intentar agregar sus variables de entorno en Mac/Linux, lo más probable es que el problema sea la propiedad del archivo \texttt{\~{}/.zshrc}. En este caso, ejecute
+
+\begin{verbatim}
+sudo chown $(whoami) ~/.zshrc
+\end{verbatim}
+
+E intente crear las variables de entorno nuevamente.
+
+\vs
+
+Según lo reportado por Drew Stephen con respecto a Mac, «\textit{aparentemente no funciona en el shell c predeterminado, pero cambiar a zsh permite ejecutarlo}». Es posible que deba cerrar y volver a abrir la ventana de la terminal desde donde comenzó para que los cambios surtan efecto.
+
+\section{El marco FOO y la viabilidad de agentes}
+\label{sec:foo}
+
+\subsection{Número mínimo de agentes}
+
+El Sistema Multi-Agente de Consenso \textsc{Max} implementa el algoritmo
+FOO para el consenso tolerante a fallas bizantinas. Dado que cualquier
+agente individual tiene una probabilidad de invalidación $p$, el número
+mínimo de agentes requeridos para alcanzar una confianza de consenso $C$ es:
+
+\begin{equation}
+N_{\text{foo}}(p, C)
+  = \left\lceil \frac{\log(1 - C)}{\log(p)} \right\rceil
+\label{eq:nfoo}
+\end{equation}
+
+Valores seleccionados se presentan en la Tabla~\ref{tab:nfoo}.
+
+\begin{table}[h]
+\centering
+\caption{Número mínimo de agentes $N_{\text{foo}}$ según la tasa de invalidación
+y el objetivo de confianza}
+\label{tab:nfoo}
+\begin{tabular}{ccc}
+\toprule
+Tasa de invalidación por agente $p$ & Confianza $C$ & $N_{\text{foo}}$ \\
+\midrule
+0.30 & 0.95 & 4 \\
+0.30 & 0.99 & 6 \\
+0.20 & 0.95 & 3 \\
+0.20 & 0.99 & 5 \\
+0.10 & 0.99 & 3 \\
+0.05 & 0.99 & 2 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Puntaje de viabilidad de agentes}
+
+El \emph{Puntaje de Viabilidad de Agentes} (AFS, por sus siglas en inglés)
+acopla el presupuesto de hardware con la condición de validez de FOO:
+
+\begin{equation}
+\text{AFS} = \frac{N_{\text{hw}}}{N_{\text{foo}}}
+\label{eq:afs}
+\end{equation}
+
+Una configuración es \emph{viable} si y sólo si $\text{AFS} \geq 1.0$.
+Cuando $\text{AFS} < 1.0$, se debe aplicar una o más de las siguientes
+mitigaciones: reducir la ventana de contexto (aumenta $N_{\text{hw}}$),
+usar un modelo más pequeño (aumenta $N_{\text{hw}}$), o relajar el
+objetivo de confianza $C$ (reduce $N_{\text{foo}}$).
+
+\subsection{Configuraciones de referencia}
+
+\paragraph{Configuración VRAM-óptima en el Dell (rápida, sin desbordamiento a RAM).}
+Cinco agentes que caben enteramente dentro de 16\,GB de VRAM, dando
+$\text{AFS} = 8.00$ con $p = 0.20$, $C = 0.99$:
+
+\begin{center}
+\begin{tabular}{lrr}
+\toprule
+Modelo & $M_{\text{agent}}$ (GB) & Ubicación \\
+\midrule
+\texttt{gemma3:1b}    & 0.9 & VRAM \\
+\texttt{phi4-mini:3.8b} & 2.8 & VRAM \\
+\texttt{gemma3:4b}    & 2.8 & VRAM \\
+\texttt{qwen3:4b}     & 2.8 & VRAM \\
+\texttt{mistral:7b}   & 4.5 & VRAM \\
+\midrule
+Total & 13.8 & (de 16\,GB) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{Configuración de capacidad completa del Spark.}
+Configuración mixta de niveles que usa 110\,GB de memoria unificada:
+
+\begin{center}
+\begin{tabular}{llrr}
+\toprule
+Rol & Modelo & $M_{\text{agent}}$ (GB) & AFS \\
+\midrule
+Orquestador     & \texttt{qwen3:32b-ctx8k}            & 19.3 & 1.67 \\
+Analista primario & \texttt{llama3.3:70b-ctx8k}         & 42.5 & 0.67 \\
+Crítico A        & \texttt{mistral-small:22b}           & 14.0 & 2.33 \\
+Crítico B        & \texttt{phi4:14b}                   &  8.8 & 4.00 \\
+Sintetizador     & \texttt{mistral-nemo:12b}            &  7.7 & 4.67 \\
+\midrule
+Total           &                                      & 92.3 & 0.67 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent El AFS mínimo de 0.67 (sólo por \texttt{llama3.3:70b} en el
+grupo) indica que una ronda completa de cinco agentes no puede
+ejecutarse simultáneamente en el Spark con esta selección de modelos. La
+solución operativa es ejecutar los modelos T1 secuencialmente dentro de
+una ronda y almacenar en caché sus salidas, o reemplazar
+\texttt{llama3.3:70b-ctx8k} por \texttt{qwen3:32b-ctx8k} para liberar
+memoria para un quinto agente simultáneo.
+
+\section{Configuración de máquina única (Dell)}
+\label{sec:single}
+
+En el modo de máquina única, el Dell ejecuta tanto la pila de aplicaciones
+\textsc{Alice} como la capa de inferencia de Ollama. Esta configuración es
+apropiada para el desarrollo de indicaciones y las pruebas de agentes a
+nivel de unidad, donde el aislamiento de red es deseable.
+
+\subsection{Variable de entorno}
+
+\begin{lstlisting}[style=bashstyle, caption={.env para el modo de máquina única}]
+LLM_PROVIDER=ollama
+LLM_BASE_URL=http://127.0.0.1:11434/v1
+LLM_MODEL=mistral:7b
+\end{lstlisting}
+
+Desde WSL, la instancia de Ollama de Windows es accesible a través de la
+puerta de enlace predeterminada de WSL en lugar de localhost:
+
+\begin{lstlisting}[style=bashstyle, caption={Encontrar la IP de la puerta de enlace de Windows desde WSL}]
+ip route | grep default | awk '{print $3}'
+# Resultado típico: 172.24.0.1 (varía según la versión y configuración de WSL)
+\end{lstlisting}
+
+\begin{lstlisting}[style=bashstyle, caption={.env para WSL accediendo a Ollama de Windows}]
+LLM_PROVIDER=ollama
+LLM_BASE_URL=http://172.24.0.1:11434/v1
+LLM_MODEL=mistral:7b
+\end{lstlisting}
+
+\subsection{Selección de modelos para el desarrollo de máquina única}
+
+Los 16\,GB de VRAM del Dell restringen la capacidad simultánea de modelos.
+Para el trabajo de desarrollo enfocado al marco FOO, la siguiente
+asignación por niveles equilibra la capacidad con la residencia en VRAM:
+
+\begin{itemize}
+  \item \textbf{Agente primario:} \texttt{deepseek-r1:8b} (5.5\,GB),
+        modelo de razonamiento con modo de pensamiento; buen sustituto
+        para agentes de consenso más grandes.
+  \item \textbf{Crítico rápido:} \texttt{mistral-nemo:12b} (7.7\,GB),
+        con capacidad de uso de herramientas, rápido, entrenado por NVIDIA.
+  \item \textbf{Agente utilitario:} \texttt{gemma3:1b} (0.9\,GB),
+        respuestas en menos de un segundo para tareas de salida estructurada.
+\end{itemize}
+
+VRAM total: 14.1\,GB de 16\,GB. Esto deja 1.9\,GB de margen para el
+servidor gráfico y los procesos en segundo plano.
+
+\section{Configuración de dos máquinas}
+\label{sec:two-machine}
+
+En la configuración de dos máquinas, el Dell aloja la pila de aplicaciones
+y el Spark atiende toda la inferencia de LLM. El grupo de memoria unificada
+de 110\,GB del Spark permite que múltiples modelos grandes permanezcan
+residentes simultáneamente, lo cual es el prerrequisito de hardware para
+ejecutar una ronda completa de consenso FOO sin desalojo secuencial.
+
+\subsection{Arquitectura}
+
+\begin{verbatim}
++----------------------------+   HTTP/REST    +---------------------------+
+|        Dell 7770           | <------------- |       NVIDIA Spark        |
+|                            |   port 11434   |                           |
+|  Alice FastAPI             |                |  Ollama (port 11434)      |
+|  PostgreSQL 16             |                |  systemd: ollama.service  |
+|  Agents                    |                |  OLLAMA_HOST=0.0.0.0      |
+|  Python venv: ALICE        |                |  OLLAMA_NUM_CTX=8192      |
+|                            |                |                           |
+|  .env:                     |                |  Models resident:         |
+|    LLM_BASE_URL=           |                |    qwen3:32b-ctx8k        |
+|    http://10.2.14.24:      |                |    llama3.3:70b-ctx8k     |
+|    11434/v1                |                |    mistral-nemo:12b       |
++----------------------------+                +---------------------------+
+\end{verbatim}
+
+\subsection{Variables de entorno}
+
+\begin{lstlisting}[style=bashstyle, caption={.env para el modo de dos máquinas (host de aplicaciones Dell)}]
+# Modo de dos máquinas: el Spark atiende toda la inferencia
+LLM_PROVIDER=ollama
+LLM_BASE_URL=http://10.2.14.24:11434/v1
+LLM_API_KEY=not-required
+
+# Asignación de modelo por agente (política de enrutamiento de Max)
+AGENT_MODEL_ORCHESTRATOR=qwen3:32b-ctx8k
+AGENT_MODEL_ANALYST=llama3.3:70b-ctx8k
+AGENT_MODEL_CRITIC=mistral-nemo:12b
+AGENT_MODEL_FAST=mistral:7b
+\end{lstlisting}
+
+El protocolo \texttt{ProviderAdapter} en \textsc{Max} hace que cambiar
+entre los modos de máquina única y de dos máquinas sea una modificación
+de una sola línea en \texttt{LLM\_BASE\_URL}. No se requieren cambios en
+el código de la aplicación.
+
+\subsection{Verificación de conectividad}
+
+Un script de prueba de conectividad (\texttt{connectivity\_test.py})
+valida la ruta de extremo a extremo desde el host de aplicaciones hasta el
+servidor Ollama. Prueba cuatro condiciones en secuencia, deteniéndose en
+la primera falla:
+
+\begin{enumerate}
+  \item \textbf{Negociación TCP:} confirma que el host es accesible y que
+        el puerto está abierto.
+  \item \textbf{Verificación de MAC por ARP:} sólo informativa; confirma
+        si las máquinas están en el mismo segmento de Capa~2. Una falla
+        aquí es esperada en una red universitaria enrutada y no indica
+        un problema.
+  \item \textbf{Lista de modelos:} confirma que Ollama está atendiendo y
+        devuelve la lista de modelos instalados.
+  \item \textbf{Inferencia:} envía una solicitud mínima de completación
+        de chat y valida la respuesta.
+\end{enumerate}
+
+Los perfiles de máquina, los puertos y los parámetros de prueba se
+almacenan en \texttt{connectivity\_config.json}, que está excluido del
+control de versiones (\texttt{.gitignore}) porque contiene direcciones IP
+y MAC específicas del entorno. Un \texttt{connectivity\_config.json.template}
+con valores de marcador de posición se incluye junto con el script.
+
+\section{Pruebas de capacidad}
+\label{sec:capacity}
+
+Un script de prueba de capacidad (\texttt{capacity\_test.py}) lee el
+registro de modelos de \\
+\texttt{connectivity\_config.json}, calcula los
+valores teóricos de $N_{\text{hw}}$ y AFS para cada modelo, y valida
+empíricamente cada modelo instalado ejecutando una única llamada de
+inferencia.
+
+\subsection{Consideraciones de plataforma}
+
+\begin{itemize}
+  \item \textbf{ARM64 (Spark):} \texttt{qwen3:4b} falla con un error de
+        \texttt{exit~status~2} en el binario ARM64 de Ollama. Este es un
+        error de Ollama que afecta a este modelo y cuantización
+        específicos en ARM64. El mismo modelo funciona correctamente en
+        el Dell x86\_64. El script detecta la arquitectura en tiempo de
+        ejecución y omite las fallas específicas de ARM64 de forma
+        apropiada.
+
+  \item \textbf{Variantes de Modelfile:} Las variantes con contexto
+        acotado (por ejemplo, \texttt{llama3.3:70b-ctx8k}) deben crearse
+        por separado en cada máquina. Un modelo creado mediante Modelfile
+        en el Spark no está disponible automáticamente en el Dell. El
+        script detecta los casos de \emph{base instalada pero variante
+        ausente} y emite los comandos de shell exactos para crear la
+        variante, usando sintaxis de PowerShell en Windows y sintaxis de
+        heredoc de bash en Linux.
+
+  \item \textbf{VRAM frente a RAM:} En el Dell, el script distingue los
+        modelos que caben enteramente en VRAM (inferencia rápida) de
+        aquellos que se desbordan a la RAM del sistema (significativamente
+        más lenta). Se producen dos recomendaciones de configuración: una
+        configuración VRAM-óptima (la más rápida, que puede no alcanzar
+        $N_{\text{foo}}$) y una configuración extendida a RAM (alcanza
+        $N_{\text{foo}}$ si la RAM lo permite, pero con una advertencia
+        de rendimiento para los modelos desbordados).
+\end{itemize}
+
+\subsection{Referencia de la CLI de Ollama}
+
+\begin{lstlisting}[style=bashstyle, caption={Comandos esenciales de la CLI de Ollama}]
+# Listar modelos instalados
+ollama list
+
+# Mostrar modelos actualmente cargados y uso de memoria
+ollama ps
+
+# Descargar un modelo desde el registro
+ollama pull qwen3:32b
+
+# Sesión de chat interactiva
+ollama run mistral:7b
+
+# Indicación de una sola ejecución (sin sesión interactiva)
+ollama run mistral:7b "Explain the rhizome model in one paragraph"
+
+# Eliminar un modelo
+ollama rm mistral:7b
+
+# Probar directamente la API compatible con OpenAI
+curl http://localhost:11434/v1/models
+curl http://localhost:11434/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{"model":"mistral:7b",
+       "messages":[{"role":"user","content":"Hello"}]}'
+\end{lstlisting}
+
+\section{Paridad de despliegue}
+\label{sec:parity}
+
+Un principio central de esta infraestructura es que el entorno de
+desarrollo refleja la producción sin contenedorización. Ambas máquinas
+ejecutan Ubuntu nativo (o WSL2 para el host de Windows), Ollama es
+administrado por \texttt{systemd}, y la configuración se inyecta a través
+de archivos de entorno en lugar de cambios en el código.
+
+El modelo de configuración de dos niveles es:
+
+\begin{itemize}
+  \item \textbf{Desarrollo:} archivo \texttt{.env} en la raíz del proyecto,
+        cargado por \texttt{python-dotenv} con \texttt{override=False}.
+  \item \textbf{Producción:} directiva \texttt{EnvironmentFile=} de
+        \texttt{systemd} que apunta a un archivo fuera del repositorio.
+        No se requieren cambios en el código al momento del despliegue.
+\end{itemize}
+
+Cambiar del modo de máquina única al de dos máquinas, o del Ollama local
+del Dell al Spark, sólo requiere actualizar \texttt{LLM\_BASE\_URL} en
+el archivo de entorno. El protocolo \texttt{ProviderAdapter} enruta de
+forma transparente las solicitudes al endpoint que esté configurado.
+
+\section{Configuración de Ollama con una GUI en Ubuntu}
+
+Para hacer la transición desde una interfaz de línea de comandos a una experiencia gráfica, siga estos pasos para instalar el backend de Ollama y la interfaz Open WebUI.
+
+\subsection{Paso 1: Instalar el backend de Ollama}
+Primero, instale el servicio central de Ollama usando el script de instalación oficial:
+\begin{verbatim}
+curl -fsSL https://ollama.com | sh
+\end{verbatim}
+
+\subsection{Paso 2: Desplegar Open WebUI mediante Docker}
+Open WebUI es la interfaz estilo ChatGPT más popular para Ollama. Ejecute el siguiente comando de Docker para descargar la imagen e iniciar el contenedor:
+\begin{verbatim}
+docker run -d -p 3000:8080 \
+  --add-host=host.docker.internal:host-gateway \
+  -v open-webui:/app/backend/data \
+  --name open-webui \
+  ghcr.io/open-webui/open-webui:main
+\end{verbatim}
+
+\subsection{Paso 3: Acceder a la interfaz}
+Una vez que el contenedor esté en ejecución, abra su navegador web preferido y navegue a:
+\begin{quote}
+    \texttt{http://localhost:3000}
+\end{quote}
+Se le pedirá crear una cuenta de administrador (almacenada localmente) para comenzar a chatear con sus modelos.
+
+\subsection{Consideraciones técnicas}
+\begin{itemize}
+    \item \textbf{Soporte de GPU:} Para usuarios de NVIDIA, asegúrese de que \texttt{nvidia-container-toolkit} esté instalado para habilitar la aceleración por hardware dentro de Docker.
+    \item \textbf{Acceso externo:} Para acceder a esta GUI desde otra máquina, configure la variable de entorno \texttt{OLLAMA\_HOST=0.0.0.0} en la configuración de su servicio systemd.
+\end{itemize}

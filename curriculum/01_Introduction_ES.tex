@@ -1,0 +1,226 @@
+%================================================================
+\chapter{Introducción}
+\addcontentsline{toc}{chapter}{Introducción}
+\markboth{Introducción}{Introducción}
+%================================================================
+
+\begin{infobox}
+Este documento \textbf{no} está pensado para leerse de principio a fin.
+El profesorado y el personal que ya se sientan cómodos con \LaTeX{}, Git y
+Python pueden pasar directamente a los capítulos de unidades del curso. Quienes
+sean nuevos en una o más de las herramientas de apoyo deberían consultar primero
+el capítulo de infraestructura pertinente. Utilice la tabla de rutas de las
+páginas siguientes para identificar qué capítulos corresponden a su perfil.
+\end{infobox}
+
+%================================================================
+\section*{Convenciones utilizadas en este documento}
+%================================================================
+
+\noindent
+\textbf{Cuadros destacados.} En el texto aparecen cuatro tipos de cuadros destacados:
+
+\begin{itemize}
+    \item \textbf{Información} (borde verde azulado): material de referencia y
+          contexto neutral.
+    \item \textbf{Consejo} (borde azul): orientación práctica y
+          atajos.
+    \item \textbf{Advertencia} (borde magenta): precauciones críticas
+          que, si se ignoran, provocarán errores o pérdida de datos.
+    \item \textbf{Nota} (borde naranja): elementos que requieren atención
+          pero no son críticos.
+\end{itemize}
+
+\noindent
+\textbf{Listados de código.} Todos los comandos que se pretende escribir en una
+terminal se muestran en bloques de código con tipografía monoespaciada. Los comandos de Windows usan
+un fondo oscuro; los comandos de Linux/macOS usan un fondo más claro.
+Los comandos que funcionan de forma idéntica en todas las plataformas usan el estilo
+de listado neutral.
+
+\noindent
+\textbf{Referencias cruzadas.} El texto subrayado en azul es un hiperenlace
+cliqueable. Las referencias a capítulos, secciones, figuras y tablas también
+son cliqueables en el PDF.
+
+%================================================================
+\section*{Cómo está organizado este documento}
+%================================================================
+
+El documento se divide en dos partes. La primera parte cubre la
+infraestructura técnica necesaria para trabajar con el repositorio del
+currículo: configurar el entorno de software, usar la
+interfaz de línea de comandos, escribir en \LaTeX{}, gestionar versiones con
+Git y GitHub, y trabajar con herramientas locales de modelos de lenguaje. Estos
+capítulos están escritos para profesorado y personal que quizás no tengan
+formación en desarrollo de software; los colaboradores experimentados pueden ojearlos
+o saltárselos por completo.
+
+La segunda parte contiene los capítulos de unidades del curso. Cada unidad
+corresponde a un curso del catálogo del departamento y documenta el
+título del curso, los resultados de aprendizaje del estudiante (SLO), el esquema temático y
+la estrategia de evaluación. Las unidades están numeradas según su identificador de catálogo
+(por ejemplo, la unidad 1023 corresponde a \textsc{Math 1023}). Los
+capítulos dentro de cada parte son independientes; un lector interesado únicamente
+en un curso específico no necesita leer ningún otro capítulo de unidad.
+
+%================================================================
+\section*{Dependencias entre capítulos}
+%================================================================
+
+      \renewcommand{\thefigure}{\arabic{figure}}
+      \setcounter{figure}{0}
+      La Figura~\ref{fig:dependencies} muestra la estructura de dependencias de los
+      capítulos de infraestructura. Una flecha continua indica una dependencia estricta:
+      el capítulo de destino requiere que el de origen se haya completado primero. Una
+      flecha discontinua indica únicamente un orden recomendado.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    node distance=1.6cm and 2.4cm,
+    every node/.style={font=\small},
+    req/.style={rectangle, rounded corners, draw=colorRequired,
+                fill=colorRequired!15, text width=3.2cm, align=center,
+                minimum height=0.9cm},
+    ess/.style={rectangle, rounded corners, draw=colorEssential,
+                fill=colorEssential!15, text width=3.2cm, align=center,
+                minimum height=0.9cm},
+    des/.style={rectangle, rounded corners, draw=colorDesirable,
+                fill=colorDesirable!15, text width=3.2cm, align=center,
+                minimum height=0.9cm},
+    opt/.style={rectangle, rounded corners, draw=colorOptional,
+                fill=colorOptional!15, text width=3.2cm, align=center,
+                minimum height=0.9cm},
+    hardarrow/.style={->, thick},
+    softarrow/.style={->, dashed}
+]
+% Fila 1
+\node[req] (env)  {Configuración del entorno};
+\node[req, right=of env] (cli) {CLI};
+\node[req, right=of cli] (prog) {Introducción a la programación};
+
+% Fila 2
+\node[ess, below=of env] (pyenv) {Entornos de Python};
+\node[des, below=of cli] (numops) {Operaciones numéricas};
+\node[req, below=of prog] (latex) {\LaTeX{}};
+
+% Fila 3
+\node[req, below=of pyenv] (git) {Git y GitHub};
+\node[opt, below=of numops] (llm) {LLM local};
+
+% Flechas
+\draw[hardarrow] (env) -- (cli);
+\draw[hardarrow] (cli) -- (prog);
+\draw[hardarrow] (env) -- (pyenv);
+\draw[hardarrow] (prog) -- (pyenv);
+\draw[softarrow] (pyenv) -- (numops);
+\draw[hardarrow] (pyenv) -- (git);
+\draw[softarrow] (cli) -- (latex);
+\draw[softarrow] (numops) -- (llm);
+\draw[softarrow] (git) -- (llm);
+\end{tikzpicture}
+\caption{Grafo de dependencias para los capítulos de infraestructura. Las flechas continuas
+indican dependencias estrictas; las flechas discontinuas indican el orden recomendado. El color
+de los nodos codifica la categoría: \textcolor{colorRequired}{\textbf{Obligatorio}},
+\textcolor{colorEssential}{\textbf{Esencial}},
+\textcolor{colorDesirable}{\textbf{Deseable}},
+\textcolor{colorOptional}{\textbf{Opcional}}.}
+\label{fig:dependencies}
+\end{figure}
+
+
+\begin{landscape}
+%================================================================
+\section*{¿Qué capítulos necesita?}
+%================================================================
+
+Utilice la Tabla~\ref{tab:routing} para identificar su ruta de lectura según su
+familiaridad con las herramientas de apoyo. Los capítulos marcados como \textbf{Obligatorio}
+deben completarse antes de trabajar con el repositorio. \textbf{Ojear} significa
+leer los títulos de las secciones y realizar los ejercicios, pero omitir la prosa
+explicativa. \textbf{Omitir} significa que el capítulo es opcional para su perfil.
+
+\begin{table}[htbp]
+\centering
+\caption{Ruta de lectura recomendada según la experiencia previa con el conjunto de herramientas.}
+\label{tab:routing}
+\footnotesize
+\begin{tabular}{l*{8}{c}}
+\toprule
+\textbf{Perfil}
+  & \rotatebox{70}{Config.\ entorno}
+  & \rotatebox{70}{CLI}
+  & \rotatebox{70}{Intro.\ prog.}
+  & \rotatebox{70}{Entornos Python}
+  & \rotatebox{70}{Oper.\ numéricas}
+  & \rotatebox{70}{\LaTeX{}}
+  & \rotatebox{70}{Git}
+  & \rotatebox{70}{LLM} \\
+\midrule
+Nuevo en todas las herramientas
+  & $\bullet$ & $\bullet$ & $\bullet$ & $\bullet$ & $\bullet$
+  & $\bullet$ & $\bullet$ & O \\
+Familiarizado con \LaTeX{}, nuevo en Python y Git
+  & $\bullet$ & $\bullet$ & $\bullet$ & $\bullet$ & O
+  & -- & $\bullet$ & O \\
+Familiarizado con Python y Git, nuevo en \LaTeX{}
+  & $\bullet$ & O & O & O & --
+  & $\bullet$ & -- & O \\
+Experimentado con todas las herramientas
+  & O & -- & -- & O & --
+  & -- & -- & O \\
+\bottomrule
+\end{tabular}
+
+\bigskip
+\noindent\footnotesize
+$\bullet$ = Obligatorio \quad O = Ojear \quad -- = Omitir
+\normalsize
+\end{table}
+
+%================================================================
+\section*{Registro de progreso}
+%================================================================
+
+El capítulo final, Capítulo~\ref{ch:assessment} (Evaluación y registro de
+progreso), organiza los elementos clave de finalización de todos los capítulos de infraestructura
+en cuatro categorías: Obligatorio, Esencial, Deseable y Opcional. Abra
+el formulario PDF rellenable en Adobe Acrobat Reader para registrar y guardar sus
+respuestas. Utilícelo durante todo el proceso de incorporación como lista de verificación de preparación.
+
+\newpage
+%================================================================
+\section*{Tiempos estimados de finalización}
+%================================================================
+
+La Tabla~\ref{tab:times} muestra los tiempos estimados de finalización por capítulo
+de infraestructura. Los tiempos suponen que no se ha tenido exposición previa al tema; los colaboradores con
+formación en un área determinada la completarán más rápido. Los capítulos de unidades del curso
+se leen como material de referencia y no están incluidos en esta tabla; el tiempo de lectura
+de una sola unidad es aproximadamente de 20 a 30 minutos.
+
+\begin{table}[htbp]
+\centering
+\caption{Tiempo estimado de finalización por capítulo de infraestructura.}
+\label{tab:times}
+\begin{tabular}{clr}
+\toprule
+\textbf{Capítulo} & \textbf{Título} & \textbf{Tiempo estimado} \\
+\midrule
+1  & Configuración del entorno                              & 2 horas \\
+2  & Interfaces de línea de comandos y scripting de shell    & 2 horas \\
+3  & Introducción a los entornos de programación       & 2 horas \\
+4  & Entornos virtuales de Python y automatización de flujos de trabajo & 1.5 horas \\
+5  & Operaciones numéricas con NumPy                & 2 horas \\
+6  & Introducción a \LaTeX{}                       & 1.5 horas \\
+7  & Control de versiones con Git y GitHub            & 1.5 horas \\
+8  & Infraestructura local de LLM con Ollama           & 1 hora (colaboradores) / 3 horas (administradores) \\
+9  & Evaluación y registro de progreso                 & Continuo \\
+\midrule
+   & \textbf{Total (ruta completa)}                     & \textbf{$\approx$ 13.5--15.5 horas} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\end{landscape}

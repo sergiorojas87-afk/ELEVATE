@@ -1,0 +1,276 @@
+%================================================================
+\chapter{Evaluación y Registro de Progreso}
+\label{ch:assessment}
+%================================================================
+
+\begin{Form}
+
+Este capítulo es un formulario PDF rellenable dirigido al profesorado
+y al personal que se incorpora como colaborador del repositorio de
+currículo del Departamento de Matemáticas. Cada sección corresponde
+a una categoría de preparación: Obligatorio, Esencial, Deseable y
+Opcional. Las casillas de verificación registran la finalización
+binaria de los pasos de verificación; los campos de texto registran
+respuestas escritas breves que demuestran comprensión conceptual.
+Utilice este capítulo como una lista de verificación activa durante
+su incorporación.
+
+\vs
+\noindent
+\textbf{Guardar sus respuestas requiere Adobe Acrobat Reader}
+(gratuito para Windows, macOS y Linux; disponible en
+\url{https://get.adobe.com/reader/}). Otros visores se comportan
+de la siguiente manera:
+
+\begin{itemize}
+    \item \textbf{Vista Previa de macOS:} muestra los campos del
+          formulario y permite escribir en ellos, pero \emph{no guarda
+          los datos ingresados}. Si cierra y vuelve a abrir el archivo
+          en Vista Previa, sus respuestas se perderán.
+    \item \textbf{Google Chrome (visor de PDF integrado):} muestra y
+          acepta entradas en los campos del formulario, pero \emph{no
+          guarda los datos}. Imprimir a PDF desde Chrome tampoco
+          preservará el contenido de los campos.
+    \item \textbf{La mayoría de los visores de PDF de Linux} (Evince,
+          Okular, Zathura): \emph{ignoran por completo los campos del
+          formulario}. Los campos no aparecerán interactivos.
+    \item \textbf{Adobe Acrobat Reader:} guarda, imprime y exporta
+          completamente los datos del formulario. Use \textbf{Archivo
+          $>$ Guardar} (no Guardar como) después de completar cada
+          sección.
+\end{itemize}
+
+\vs
+\noindent
+\textbf{Cómo interpretar las cuatro categorías:}
+
+\begin{description}
+    \item[Obligatorio] Tareas básicas del repositorio. Estas deben
+          completarse antes de que un colaborador pueda realizar
+          cualquier cambio en el documento de currículo.
+    \item[Esencial] Configuración del entorno local: \LaTeX{}, Python,
+          Git y Visual Studio Code. Estos deben funcionar
+          correctamente antes de comenzar cualquier trabajo de autoría
+          o de programación.
+    \item[Deseable] Comprensión conceptual de las herramientas
+          introducidas en los capítulos de infraestructura. Completar
+          estos elementos demuestra estar preparado para trabajar de
+          manera independiente en el repositorio.
+    \item[Opcional] Infraestructura local de modelos grandes de
+          lenguaje (Ollama). No es obligatorio para la autoría del
+          currículo; es relevante para los colaboradores que deseen
+          usar modelos de lenguaje locales en su flujo de trabajo.
+\end{description}
+\vs
+
+%================================================================
+\section{Obligatorio: Incorporación al Repositorio}
+\label{sec:assess-required}
+%================================================================
+
+Los siguientes elementos verifican que usted puede recuperar,
+compilar y contribuir al repositorio de currículo. Todos los
+elementos deben completarse antes de editar cualquier archivo fuente.
+
+\vs
+
+\noindent\CheckBox[name=r1,width=0.4cm,height=0.4cm]{}~\textbf{R1.}
+El \texttt{git clone} del repositorio se completa sin errores y la
+copia de trabajo local contiene la carpeta \texttt{curriculum/}.
+(Véase el Capítulo~\ref{ch:git}, Sección~\ref{subsec:multiple-remotes}.)
+
+\vs
+
+\noindent\CheckBox[name=r2,width=0.4cm,height=0.4cm]{}~\textbf{R2.}
+Ejecutar \texttt{pdflatex MathCurriculum.tex} desde dentro de la
+carpeta \texttt{curriculum/} produce \texttt{MathCurriculum.pdf}
+sin errores fatales.
+(Véase el Capítulo~\ref{ch:latex}, Sección~\ref{sec:first-latex-doc}.)
+
+\vs
+
+\noindent\CheckBox[name=r3,width=0.4cm,height=0.4cm]{}~\textbf{R3.}
+Ejecutar \texttt{gh} (o \texttt{gh.bat} en Windows) con un mensaje
+de confirmación prepara, confirma y envía exitosamente un cambio al
+repositorio, y \texttt{VERSION.txt} se actualiza con el nuevo hash.
+(Véase el Capítulo~\ref{ch:git}.)
+
+\vs
+
+\noindent\CheckBox[name=r4,width=0.4cm,height=0.4cm]{}~\textbf{R4.}
+El hash de confirmación en \texttt{VERSION.txt} coincide con el
+valor devuelto por \texttt{git rev-parse --short HEAD} en su
+repositorio local.
+(Véase el Capítulo~\ref{ch:git}.)
+
+\vs
+
+\noindent\textbf{R5.} Describa la estructura de dos partes del
+documento de currículo. ¿Qué está contenido en los capítulos de
+infraestructura y qué está contenido en los capítulos de unidades
+del curso? ¿Cómo se identifican los capítulos de unidades en el
+árbol de código fuente?
+(Véase la Introducción.)\\[4pt]
+\TextField[name=r5,width=\linewidth,height=3cm,multiline=true,
+           bordercolor=black]{}
+
+%================================================================
+\section{Esencial: Configuración del Entorno y Cadena de Herramientas}
+\label{sec:assess-essential}
+%================================================================
+
+Marque cada casilla cuando el paso de verificación correspondiente
+tenga éxito. Todos los elementos de esta sección deben estar marcados
+antes de comenzar cualquier trabajo de autoría o de programación en
+el repositorio.
+
+\vs
+
+\noindent\CheckBox[name=e1,width=0.4cm,height=0.4cm]{}~\textbf{E1.}
+\texttt{pdflatex --version} devuelve un número de versión en la
+terminal.
+(Véase el Capítulo~\ref{ch:environment-setup}.)
+
+\vs
+
+\noindent\CheckBox[name=e2,width=0.4cm,height=0.4cm]{}~\textbf{E2.}
+\texttt{python --version} devuelve un número de versión en la terminal.
+(Véase el Capítulo~\ref{ch:environment-setup}, Sección~\ref{sec:python}.)
+
+\vs
+
+\noindent\CheckBox[name=e3,width=0.4cm,height=0.4cm]{}~\textbf{E3.}
+\texttt{git --version} devuelve un número de versión.
+(Véase el Capítulo~\ref{ch:environment-setup}, Sección~\ref{sec:git}.)
+
+\vs
+
+\noindent\CheckBox[name=e4,width=0.4cm,height=0.4cm]{}~\textbf{E4.}
+\texttt{code .} abre Visual Studio Code desde una ventana de terminal.
+(Véase el Capítulo~\ref{ch:environment-setup}, Sección~\ref{sec:vscstart}.)
+
+\vs
+
+\noindent\CheckBox[name=e5,width=0.4cm,height=0.4cm]{}~\textbf{E5.}
+El entorno virtual de Python se activa sin errores, y los paquetes
+listados en \texttt{pyproject.toml} (o \texttt{requirements.txt})
+se importan correctamente en ese entorno.
+(Véase el Capítulo~\ref{ch:python-environments},
+Sección~\ref{sec:project-libraries}.)
+
+\vs
+
+\noindent\CheckBox[name=e6,width=0.4cm,height=0.4cm]{}~\textbf{E6.}
+Ejecutar \texttt{latexmk -pdf MathCurriculum.tex} produce un PDF
+correctamente paginado con una tabla de contenido y todas las
+referencias cruzadas resueltas.
+(Véase el Capítulo~\ref{ch:latex}.)
+
+%================================================================
+\section{Deseable: Comprensión Técnica}
+\label{sec:assess-desirable}
+%================================================================
+
+Estos elementos demuestran una comprensión funcional de las
+herramientas introducidas en los capítulos de infraestructura. Las
+respuestas escritas no necesitan ser extensas; dos o tres oraciones
+cada una son suficientes.
+
+\vs
+
+\noindent\textbf{D1.} ¿Cuál es el directorio de trabajo actual cuando
+usted abre por primera vez una terminal? Escriba el comando que
+utilizaría para navegar hasta la carpeta \texttt{curriculum/} dentro
+del repositorio clonado.
+(Véase el Capítulo~\ref{ch:cli-scripting},
+Sección~\ref{sec:what-is-a-file}.)\\[4pt]
+\TextField[name=d1,width=\linewidth,height=2.5cm,multiline=true,
+           bordercolor=black]{}
+
+\vs
+
+\noindent\textbf{D2.} ¿Cuál es la diferencia entre un entorno virtual
+de Python y la instalación global de Python? Proporcione un escenario
+en el contexto de este repositorio donde necesitaría un entorno
+virtual separado.
+(Véase el Capítulo~\ref{ch:python-environments}.)\\[4pt]
+\TextField[name=d2,width=\linewidth,height=2.5cm,multiline=true,
+           bordercolor=black]{}
+
+\vs
+
+\noindent\textbf{D3.} ¿Por qué \texttt{git push} requiere un
+\texttt{git commit} previo? ¿Cuál es la diferencia conceptual entre
+las dos operaciones, y por qué el script \texttt{gh.bat} realiza
+ambas en secuencia?
+(Véase el Capítulo~\ref{ch:git}.)\\[4pt]
+\TextField[name=d3,width=\linewidth,height=2.5cm,multiline=true,
+           bordercolor=black]{}
+
+\vs
+
+\noindent\textbf{D4.} En \LaTeX{}, ¿cuál es la diferencia práctica
+entre \verb|\[...\]| y \verb|$$...$$|? ¿Qué forma debería usarse en
+los nuevos archivos fuente del currículo y por qué?
+(Véase el Capítulo~\ref{ch:latex}, Sección~\ref{sec:latex-math}.)\\[4pt]
+\TextField[name=d4,width=\linewidth,height=2.5cm,multiline=true,
+           bordercolor=black]{}
+
+\vs
+
+\noindent\textbf{D5.} ¿Qué hace el script \texttt{regen.py} cuando se
+ejecuta para una unidad de curso determinada? Describa la entrada
+que lee, la salida que produce y el papel del diccionario
+\texttt{ASSESSMENTS} en el control de la salida.
+(Véase la carpeta \texttt{Script/} del repositorio y la documentación
+asociada.)\\[4pt]
+\TextField[name=d5,width=\linewidth,height=2.5cm,multiline=true,
+           bordercolor=black]{}
+
+\vs
+
+\noindent\textbf{D6.} Explique el esquema de etiquetas utilizado para
+las referencias cruzadas en los archivos fuente del currículo. ¿Cuál
+es el formato de una etiqueta de sección, cómo se deriva el mnemónico
+de cuatro caracteres y cómo se calcula el sufijo hash?
+(Véase la documentación de la canalización del currículo.)\\[4pt]
+\TextField[name=d6,width=\linewidth,height=2.5cm,multiline=true,
+           bordercolor=black]{}
+
+%================================================================
+\section{Opcional: Infraestructura Local de LLM (Ollama)}
+\label{sec:assess-optional}
+%================================================================
+
+Estos elementos se aplican solo a los colaboradores que instalan y
+configuran la infraestructura local del modelo grande de lenguaje
+Ollama. No son obligatorios para la autoría del currículo ni para el
+mantenimiento del repositorio.
+
+\vs
+
+\noindent\CheckBox[name=o1,width=0.4cm,height=0.4cm]{}~\textbf{O1.}
+Ollama está instalado y \texttt{ollama list} devuelve al menos un
+modelo en la terminal.
+(Véase el Capítulo~\ref{ch:ollama-infrastructure},
+Sección~\ref{sec:install}.)
+
+\vs
+
+\noindent\CheckBox[name=o2,width=0.4cm,height=0.4cm]{}~\textbf{O2.}
+\texttt{connectivity\_test.py} aprueba todas las verificaciones
+(protocolo de enlace TCP, lista de modelos, inferencia).
+(Véase el Capítulo~\ref{ch:ollama-infrastructure}.)
+
+\vs
+
+\noindent\textbf{O3.} Explique el equilibrio entre el tamaño de la
+ventana de contexto y el consumo de memoria en Ollama. ¿Por qué
+\texttt{OLLAMA\_NUM\_CTX=8192} es un valor predeterminado seguro
+para modelos grandes en hardware con VRAM limitada?
+(Véase el Capítulo~\ref{ch:ollama-infrastructure},
+Sección~\ref{sec:memory}.)\\[4pt]
+\TextField[name=o3,width=\linewidth,height=3cm,multiline=true,
+           bordercolor=black]{}
+
+\end{Form}

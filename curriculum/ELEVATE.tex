@@ -1,0 +1,32 @@
+\documentclass[letterpaper,12pt]{report}
+\newcommand{\TheTitle}{ELEVATE Academy}
+\newcommand{\TheSubtitle}{Evidence-Led Evaluation \& AI Tools for Education}
+\newcommand{\TheAuthor}{Juan B. Gutiérrez}
+\newcommand{\ThePageCount}{39}
+\newcommand{\TheDate}{2026}
+\newcommand{\TheObsolescenceDate}{August 31, 2026}
+%-----------------------------
+\input{../common/Config}
+
+% Project name command -- use in prose; keep literal identifiers unchanged
+\newcommand{\ProjectName}{ELEVATE Academy}
+\newcommand{\ProjectGit}{https://github.com/biomathematicus/ELEVATE}
+\newcommand{\ProjectFolder}{ELEVATE}
+
+\begin{document}
+	\input{../common/FrontMatter.tex}
+	\setcounter{page}{1}
+	\tableofcontents \newpage
+
+    \input{01_Introduction}
+    \input{02_Environment_Setup}
+    \input{03_CLI}
+    \input{04_ChapterIntroProg}
+    \input{05_PythonEnvironments}
+    \input{06_ChapterNumericalOps}
+    \input{07_LaTeX}
+    \input{08_GIT}
+    \input{09_LLM}
+    \input{10_Assessment}
+
+\end{document}
